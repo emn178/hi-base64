@@ -3,8 +3,24 @@
   "version": "0.1.0",
   "description": "A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.",
   "main": "src/base64.js",
+  "devDependencies": {
+    "tape": "~2.4.0"
+  },
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/22..latest",
+      "firefox/16..latest",
+      "safari/latest",
+      "opera/11.0..latest",
+      "iphone/6",
+      "ipad/6",
+      "android-browser/latest"
+    ]
+  },
   "scripts": {
-    "test": "node tests/node-test.js"
+    "test": "tape tests/*.js"
   },
   "repository": {
     "type": "git",
