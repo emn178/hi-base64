@@ -1,0 +1,24 @@
+{
+  "name": "hi-base64",
+  "version": "0.1.0",
+  "description": "A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.",
+  "main": "src/base64.js",
+  "scripts": {
+    "test": "node tests/node-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emn178/hi-base64.git"
+  },
+  "keywords": [
+    "base64",
+    "encode",
+    "decode"
+  ],
+  "license": "MIT",
+  "author": "emn178 <emn178@gmail.com>",
+  "homepage": "https://github.com/emn178/hi-base64",
+  "bugs": {
+    "url": "https://github.com/emn178/hi-base64/issues"
+  }
+}
