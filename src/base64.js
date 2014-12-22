@@ -1,5 +1,5 @@
 /*
- * hi-base64 v0.1.0
+ * hi-base64 v0.1.1
  * https://github.com/emn178/hi-base64
  *
  * Copyright 2014, emn178@gmail.com
