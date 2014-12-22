@@ -1,6 +1,6 @@
 # hi-base64
 A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.  
-[![Build Status](https://api.travis-ci.org/emn178/hi-base64.png)](https://travis-ci.org/emn178/hi-base64) [![NPM version](https://badge.fury.io/js/hi-base64.png)](http://badge.fury.io/js/hi-base64)  
+[![Build Status](https://api.travis-ci.org/emn178/hi-base64.png)](https://travis-ci.org/emn178/hi-base64)  
 [![NPM](https://nodei.co/npm/hi-base64.png?stars&downloads)](https://nodei.co/npm/hi-base64/)
 
 ## Download
@@ -8,8 +8,8 @@ A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.
 [Uncompress](https://raw.github.com/emn178/hi-base64/master/src/base64.js)
 
 ## Benchmark
-[Encode ASCII](http://jsperf.com/base64-encode-ascii)  
-[Encode UTF8](http://jsperf.com/base64-encode-utf8)  
+[Encode ASCII](http://jsperf.com/base64-encode-ascii/2)  
+[Encode UTF8](http://jsperf.com/base64-encode-utf8/2)  
 [Decode ASCII](http://jsperf.com/base64-decode-ascii)  
 [Decode UTF8](http://jsperf.com/base64-decode-utf8)  
 
