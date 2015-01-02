@@ -12,12 +12,16 @@ A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.
 [Base64 Decode Online](http://emn178.github.io/online-tools/base64_decode.html)  
 
 ## Benchmark
-[Encode ASCII](http://jsperf.com/base64-encode-ascii/2)  
-[Encode UTF8](http://jsperf.com/base64-encode-utf8/2)  
-[Decode ASCII](http://jsperf.com/base64-decode-ascii)  
-[Decode UTF8](http://jsperf.com/base64-decode-utf8)  
+[Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  
+[Encode UTF8](http://jsperf.com/base64-encode-utf8/3)  
+[Decode ASCII](http://jsperf.com/base64-decode-ascii/2)  
+[Decode UTF8](http://jsperf.com/base64-decode-utf8/2)  
 
-## Install
+## Installation
+You can also install hi-base64 by using Bower.
+
+    bower install hi-base64
+
 For node.js, you can use this command to install:
 
     npm install hi-base64
