@@ -7,6 +7,10 @@ A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.
 [Compress](https://raw.github.com/emn178/hi-base64/master/build/base64.min.js)  
 [Uncompress](https://raw.github.com/emn178/hi-base64/master/src/base64.js)
 
+## Demo
+[Base64 Encode Online](http://emn178.github.io/online-tools/base64_encode.html)  
+[Base64 Decode Online](http://emn178.github.io/online-tools/base64_decode.html)  
+
 ## Benchmark
 [Encode ASCII](http://jsperf.com/base64-encode-ascii/2)  
 [Encode UTF8](http://jsperf.com/base64-encode-utf8/2)  
