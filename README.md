@@ -1,7 +1,7 @@
 # hi-base64
 [![Build Status](https://api.travis-ci.org/emn178/hi-base64.png)](https://travis-ci.org/emn178/hi-base64)
 [![Build Status](https://coveralls.io/repos/emn178/hi-base64/badge.png?branch=master)](https://coveralls.io/r/emn178/hi-base64?branch=master)  
-[![NPM](https://nodei.co/npm/hi-base64.png?stars&downloads)](https://nodei.co/npm/hi-base64/)
+[![NPM](https://nodei.co/npm/hi-base64.png?stars&downloads)](https://nodei.co/npm/hi-base64/)  
 A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.  
 
 ## Demo
