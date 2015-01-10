@@ -1,22 +1,16 @@
 # hi-base64
 [![Build Status](https://api.travis-ci.org/emn178/hi-base64.png)](https://travis-ci.org/emn178/hi-base64)  
-[![Build Status](https://coveralls.io/repos/emn178/hi-base64/badge.png?branch=master)](https://coveralls.io/r/emn178/hi-base64?branch=master)  
+[![Build Status](https://coveralls.io/repos/emn178/hi-base64/badge.png?branch=master)](https://coveralls.io/r/emn178/hi-base64?branch=master)
 [![NPM](https://nodei.co/npm/hi-base64.png?stars&downloads)](https://nodei.co/npm/hi-base64/)
 A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.  
-
-## Download
-[Compress](https://raw.github.com/emn178/hi-base64/master/build/base64.min.js)  
-[Uncompress](https://raw.github.com/emn178/hi-base64/master/src/base64.js)
 
 ## Demo
 [Base64 Encode Online](http://emn178.github.io/online-tools/base64_encode.html)  
 [Base64 Decode Online](http://emn178.github.io/online-tools/base64_decode.html)  
 
-## Benchmark
-[Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  
-[Encode UTF8](http://jsperf.com/base64-encode-utf8/3)  
-[Decode ASCII](http://jsperf.com/base64-decode-ascii/2)  
-[Decode UTF8](http://jsperf.com/base64-decode-utf8/2)  
+## Download
+[Compress](https://raw.github.com/emn178/hi-base64/master/build/base64.min.js)  
+[Uncompress](https://raw.github.com/emn178/hi-base64/master/src/base64.js)
 
 ## Installation
 You can also install hi-base64 by using Bower.
@@ -84,14 +78,11 @@ Output
 
     5Lit5paH
 
-## Tests
-You can open `tests/index.html` in browser or use node.js to run test
-
-    node tests/node-test.js
-
-or
-
-    npm test
+## Benchmark
+[Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  
+[Encode UTF8](http://jsperf.com/base64-encode-utf8/3)  
+[Decode ASCII](http://jsperf.com/base64-decode-ascii/2)  
+[Decode UTF8](http://jsperf.com/base64-decode-utf8/2)  
 
 ## Extensions
 ### jQuery
