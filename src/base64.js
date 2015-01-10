@@ -1,5 +1,5 @@
 /*
- * hi-base64 v0.1.2
+ * hi-base64 v0.1.3
  * https://github.com/emn178/hi-base64
  *
  * Copyright 2014-2015, emn178@gmail.com
@@ -82,11 +82,18 @@
     return bytes;
   };
 
+  if(typeof(module) != 'undefined') {
+    root = global;
+  }
   var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode;
   // node.js
-  if(typeof(module) != 'undefined') {
+  if(!root.HI_BASE64_TEST && typeof(module) != 'undefined') {
     var Buffer = require('buffer').Buffer;
-    btoa = utf8Base64Encode = function(str) {
+    btoa = function(str) {
+      return new Buffer(str, 'ascii').toString('base64');
+    };
+
+    utf8Base64Encode = function(str) {
       return new Buffer(str).toString('base64');
     };
 
@@ -228,7 +235,14 @@
         if (c > 0x10FFFF) {
           throw 'not a UTF-8 string';
         }
-        str += String.fromCharCode(c);
+
+        if (c <= 0xFFFF) {
+          str += String.fromCharCode(c);
+        } else {
+          c -= 0x10000;
+          str += String.fromCharCode((c >> 10) + 0xD800);
+          str += String.fromCharCode((c & 0x3FF) + 0xDC00);
+        }
       }
       return str;
     };
@@ -295,7 +309,14 @@
         if (c > 0x10FFFF) {
           throw 'not a UTF-8 string';
         }
-        str += String.fromCharCode(c);
+
+        if (c <= 0xFFFF) {
+          str += String.fromCharCode(c);
+        } else {
+          c -= 0x10000;
+          str += String.fromCharCode((c >> 10) + 0xD800);
+          str += String.fromCharCode((c & 0x3FF) + 0xDC00);
+        }
       }
       return str;
     };
@@ -317,7 +338,9 @@
     encode: encode,
     decode: decode,
     encodeAsBytes: encodeAsBytes,
-    decodeAsBytes: decodeAsBytes
+    decodeAsBytes: decodeAsBytes,
+    atob: atob,
+    btoa: btoa
   };
 
   if(typeof(module) != 'undefined') {

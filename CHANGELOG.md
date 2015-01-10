@@ -1,3 +1,9 @@
+# v0.1.3 / 2015-01-10
+
+* Fixed 4 bytes utf8 character bug.
+* Update test framework.
+* Add coveralls.
+
 # v0.1.2 / 2015-01-02
 
 * Add bower package.
