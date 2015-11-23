@@ -343,9 +343,13 @@
     btoa: btoa
   };
 
-  if(typeof(module) != 'undefined') {
+  if (typeof define === 'function' && define.amd) {
+    define(function() {
+      return (root.base64 = exports);
+    });
+  } else if (typeof module === 'object' && module.exports) {
     module.exports = exports;
-  } else if(root) {
+  } else {
     root.base64 = exports;
   }
 }(this));
