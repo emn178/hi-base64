@@ -1,3 +1,8 @@
+# v0.2.0 / 2015-11-23
+
+* Added support for AMD
+* Added missing dependencies to the package.json file
+
 # v0.1.3 / 2015-01-10
 
 * Fixed 4 bytes utf8 character bug.
