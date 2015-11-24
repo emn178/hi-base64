@@ -5,8 +5,8 @@
   "main": "src/base64.js",
   "devDependencies": {
     "coveralls": "^2.11.4",
-    "expect.js": "~0.3.1",
-    "jscoverage": "~0.5.9",
+    "expect.js": "^0.3.1",
+    "jscoverage": "^0.6.0",
     "mocha": "^2.3.4",
     "mocha-lcov-reporter": "^1.0.0",
     "uglifyjs": "^2.4.10"
