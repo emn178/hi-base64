@@ -1,7 +1,7 @@
 {
   "name": "hi-base64",
   "version": "0.2.0",
-  "main": ["build/base64.min.js"],
+  "main": ["src/base64.js"],
   "ignore": [
     "samples",
     "tests"

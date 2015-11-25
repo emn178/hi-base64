@@ -47,7 +47,7 @@ Specify the string encoding is ASCII.
 
 #### base64.decode(base64Str, asciiOnly)
 
-Decode base64 string, set asciiOnly to true for better performace.
+Decode base64 string, set asciiOnly to true for better performace. `base64.decode.string` is alias to this method.
 
 ##### *base64Str: `String`*
 
@@ -57,26 +57,41 @@ Base64 string to decode.
 
 Specify the string encoding is ASCII.
 
+#### base64.decode.bytes(base64Str)
+
+Decode base64 string and return bytes `Array`.
+
+##### *base64Str: `String`*
+
+Base64 string to decode.
+
 ## Example
 Code
 ```JavaScript
 base64.encode('Man is distinguished, not only by his reason, but by this singular passion from other animals, which is a lust of the mind, that by a perseverance of delight in the continued and indefatigable generation of knowledge, exceeds the short vehemence of any carnal pleasure.');
-base64.decode('VGhpcyBpcyB0ZXN0Lg==');
-```
-Output
+// TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=
 
-    TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=
-    This is test.
 
-It also supports UTF-8 encoding:
-
-Code
-```JavaScript
+/* Supports UTF-8 encoding: */
 base64.encode('中文');
-```
-Output
+// 5Lit5paH
 
-    5Lit5paH
+base64.decode('VGhpcyBpcyB0ZXN0Lg==');
+base64.decode.string('VGhpcyBpcyB0ZXN0Lg==');
+// This is test.
+
+
+/* Supports bytes: */
+base64.encode([0, 1, 2]);
+base64.encode(new Uint8Array([0, 1, 2]));
+// AAEC
+
+base64.encode(new ArrayBuffer(3));
+// AAAA
+
+base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg=='); 
+// [84, 104, 105, 115, 32, 105, 115, 32, 116, 101, 115, 116, 46]
+```
 
 ## Benchmark
 [Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  

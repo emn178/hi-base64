@@ -4,11 +4,18 @@
  *
  * Copyright 2014-2015, emn178@gmail.com
  *
- * Licensed under the MIT license:
+ * @license under the MIT license:
  * http://www.opensource.org/licenses/MIT
  */
-;(function(root, undefined) {
+;(function(root) {
   'use strict';
+
+  var NODE_JS = typeof process == 'object' && process.versions && process.versions.node;
+  if(NODE_JS) {
+    root = global;
+  }
+  var COMMON_JS = !root.HI_BASE64_TEST && typeof module == 'object' && module.exports;
+  var AMD = typeof define == 'function' && define.amd;
 
   var BASE64_ENCODE_CHAR = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
   var BASE64_DECODE_CHAR = {
@@ -23,7 +30,7 @@
     '_': 63
   };
 
-  var encodeAsBytes = function(str) {
+  var utf8ToBytes = function(str) {
     var bytes = [];
     for (var i = 0;i < str.length; i++) {
       var c = str.charCodeAt(i);
@@ -82,12 +89,38 @@
     return bytes;
   };
 
-  if(typeof(module) != 'undefined') {
-    root = global;
-  }
+  var encodeFromBytes = function(bytes) {
+    var v1, v2, v3, base64Str = '', length = bytes.length;
+    for(var i = 0, count = parseInt(length / 3) * 3;i < count;) {
+      v1 = bytes[i++];
+      v2 = bytes[i++];
+      v3 = bytes[i++];
+      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
+                   BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
+                   BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63] +
+                   BASE64_ENCODE_CHAR[v3 & 63];
+    }
+    
+    // remain char
+    var remain = length - count;
+    if(remain == 1) {
+      v1 = bytes[i];
+      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
+                   BASE64_ENCODE_CHAR[(v1 << 4) & 63] +
+                   '==';
+    } else if(remain == 2) {
+      v1 = bytes[i++];
+      v2 = bytes[i];
+      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
+                   BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
+                   BASE64_ENCODE_CHAR[(v2 << 2) & 63] +
+                   '=';
+    }
+    return base64Str;
+  };
+
   var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode;
-  // node.js
-  if(!root.HI_BASE64_TEST && typeof(module) != 'undefined') {
+  if(!root.HI_BASE64_TEST && NODE_JS) {
     var Buffer = require('buffer').Buffer;
     btoa = function(str) {
       return new Buffer(str, 'ascii').toString('base64');
@@ -96,6 +129,8 @@
     utf8Base64Encode = function(str) {
       return new Buffer(str).toString('base64');
     };
+
+    encodeFromBytes = utf8Base64Encode;
 
     atob = function(base64Str) {
       return new Buffer(base64Str, 'base64').toString('ascii');
@@ -136,7 +171,7 @@
     };
 
     utf8Base64Encode = function(str) {
-      var v1, v2, v3, base64Str = '', bytes = encodeAsBytes(str), length = bytes.length;
+      var v1, v2, v3, base64Str = '', bytes = utf8ToBytes(str), length = bytes.length;
       for(var i = 0, count = parseInt(length / 3) * 3;i < count;) {
         v1 = bytes[i++];
         v2 = bytes[i++];
@@ -323,10 +358,18 @@
   }
   
   var encode = function(str, asciiOnly) {
-    if(!asciiOnly && /[^\x00-\x7F]/.test(str)) {
-      return utf8Base64Encode(str);
+    var notString = typeof(str) != 'string';
+    if(notString && str.constructor == root.ArrayBuffer) {
+      str = new Uint8Array(str);
+    }
+    if(notString) {
+      return encodeFromBytes(str);
     } else {
-      return btoa(str);
+      if(!asciiOnly && /[^\x00-\x7F]/.test(str)) {
+        return utf8Base64Encode(str);
+      } else {
+        return btoa(str);
+      }
     }
   };
 
@@ -337,19 +380,20 @@
   var exports = {
     encode: encode,
     decode: decode,
-    encodeAsBytes: encodeAsBytes,
-    decodeAsBytes: decodeAsBytes,
     atob: atob,
     btoa: btoa
   };
+  decode.bytes = decodeAsBytes;
+  decode.string = decode;
 
-  if (typeof define === 'function' && define.amd) {
-    define(function() {
-      return (root.base64 = exports);
-    });
-  } else if (typeof module === 'object' && module.exports) {
+  if(COMMON_JS) {
     module.exports = exports;
   } else {
     root.base64 = exports;
+    if(AMD) {
+      define(function() {
+        return exports;
+      });
+    }
   }
 }(this));

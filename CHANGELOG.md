@@ -1,5 +1,6 @@
-# v0.2.0 / 2015-11-23
+# v0.2.0 / 2015-11-25
 
+* Added support for bytes
 * Added support for AMD
 * Added missing dependencies to the package.json file
 * Updated devDependencies

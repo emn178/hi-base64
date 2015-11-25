@@ -6,17 +6,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/expect.js/0.2.0/expect.min.js"></script>
-  <script src="../src/base64.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.17/require.min.js"></script>
 </head>
 <body>
   <div id="mocha"></div>
   <script>
     mocha.setup('bdd');
-  </script>
-  <script src="test.js"></script>
-  <script>
-    mocha.checkLeaks();
-    mocha.run();
+    require(['../src/base64.js'], function(base64) {
+      window.base64 = base64;
+      require(['test.js'], function() {
+        mocha.checkLeaks();
+        mocha.run();
+      })
+    });
   </script>
 </body>
 </html>
