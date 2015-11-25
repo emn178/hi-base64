@@ -1,5 +1,5 @@
 /*
- * hi-base64 v0.1.3
+ * hi-base64 v0.2.0
  * https://github.com/emn178/hi-base64
  *
  * Copyright 2014-2015, emn178@gmail.com
@@ -343,9 +343,13 @@
     btoa: btoa
   };
 
-  if(typeof(module) != 'undefined') {
+  if (typeof define === 'function' && define.amd) {
+    define(function() {
+      return (root.base64 = exports);
+    });
+  } else if (typeof module === 'object' && module.exports) {
     module.exports = exports;
-  } else if(root) {
+  } else {
     root.base64 = exports;
   }
 }(this));
