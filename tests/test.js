@@ -27,71 +27,138 @@
     '8KCcjg=='
   ];
 
+  var base64NonUtf8Strs = [
+    '+A==',
+    '33k=',
+    '7aCA',
+    '9JCAgA=='
+  ];
+
   var bytes = [
     [0],
     new Uint8Array([0]),
-    new ArrayBuffer(0)
+    new ArrayBuffer(1),
+    [0, 0],
+    [0, 0, 0]
   ];
 
   var base64Bytes = [
     'AA==',
     'AA==',
-    'AA=='
+    'AA==',
+    'AAA=',
+    'AAAA'
   ];
 
-  describe('ascii', function() {
-    describe('encode', function() {
-      it('should be successful', function() {
+  function arrayToStr(array) {
+    if(array.constructor == ArrayBuffer) {
+      array = new Uint8Array(array);
+    }
+    return Array.prototype.join.call(array, ',');
+  }
+
+  describe('#encode', function() {
+    context('when ascii', function() {
+      context('without ascii option', function() {
         for(var i = 0;i < strs.length;++i) {
-          expect(base64.encode(strs[i])).to.be(base64Strs[i]);
+          (function(i) {
+            it('should be equal', function() {
+              expect(base64.encode(strs[i])).to.be(base64Strs[i]);
+            });
+          })(i);
         }
-        expect(base64.encode(strs[0], true)).to.be(base64Strs[0]);
+      });
+
+      context('with ascii option', function() {
+        it('should be equal', function() {
+          expect(base64.encode(strs[0], true)).to.be(base64Strs[0]);
+        });
       });
     });
 
-    describe('decode', function() {
-      it('should be successful', function() {
-        for(var i = 0;i < strs.length;++i) {
-          expect(base64.decode(base64Strs[i])).to.be(strs[i]);
-        }
-        expect(base64.decode(base64Strs[0], true)).to.be(strs[0]);
-      });
+    context('when UTF8', function() {
+      for(var i = 0;i < utf8Str.length;++i) {
+        (function(i) {
+          it('should be equal', function() {
+            expect(base64.encode(utf8Str[i])).to.be(base64Utf8Strs[i]);
+          });
+        })(i);
+      }
+    });
+
+    context('when Bytes', function() {
+      for(var i = 0;i < bytes.length;++i) {
+        (function(i) {
+          it('should be equal', function() {
+            expect(base64.encode(bytes[i])).to.be(base64Bytes[i]);
+          });
+        })(i);
+      }
     });
   });
 
-  describe('UTF8', function() {
-    describe('encode', function() {
-      it('should be successful', function() {
-        for(var i = 0;i < utf8Str.length;++i) {
-          expect(base64.encode(utf8Str[i])).to.be(base64Utf8Strs[i]);
+  describe('#decode', function() {
+    context('when ascii', function() {
+      context('without ascii option', function() {
+        for(var i = 0;i < strs.length;++i) {
+          (function(i) {
+            it('should be equal', function() {
+              expect(base64.decode(base64Strs[i])).to.be(strs[i]);
+            });
+          })(i);
         }
+      });
+
+      context('with ascii option', function() {
+        it('should be equal', function() {
+          expect(base64.decode(base64Strs[0], true)).to.be(strs[0]);
+        });
       });
     });
 
-    describe('decode', function() {
-      it('should be successful', function() {
-        for(var i = 0;i < utf8Str.length;++i) {
-          expect(base64.decode.string(base64Utf8Strs[i])).to.be(utf8Str[i]);
+    context('when UTF8', function() {
+      for(var i = 0;i < utf8Str.length;++i) {
+        (function(i) {
+          it('should be equal', function() {
+            expect(base64.decode(base64Utf8Strs[i])).to.be(utf8Str[i]);
+          });
+        })(i);
+      }
+    });
+
+    if(typeof HI_BASE64_TEST != 'undefined') {
+      context('when non-UTF8 as UTF8', function() {
+        for(var i = 0;i < base64NonUtf8Strs.length;++i) {
+          (function(i) {
+            it('should throw exception', function() {
+              expect(function() {
+                base64.decode(base64NonUtf8Strs[i]);
+              }).to.throwError();
+            });
+          })(i);
         }
       });
-    });
+    }
+
   });
 
-  describe('Bytes', function() {
-    describe('encode', function() {
-      it('should be successful', function() {
-        for(var i = 0;i < base64.length;++i) {
-          expect(base64.encode(bytes[i])).to.be(base64Bytes[i]);
-        }
-      });
-    });
+  describe('#decode.string', function() {
+    for(var i = 0;i < strs.length;++i) {
+      (function(i) {
+        it('should be equal', function() {
+          expect(base64.decode.string(base64Strs[i])).to.be(strs[i]);
+        });
+      })(i);
+    }
+  });
 
-    describe('decode', function() {
-      it('should be successful', function() {
-        for(var i = 0;i < base64.length;++i) {
-          expect(base64.decode.bytes(base64Bytes[i])).to.be(bytes[i]);
-        }
-      });
-    });
+  describe('#decode.bytes', function() {
+    for(var i = 0;i < bytes.length;++i) {
+      (function(i) {
+        it('should be equal', function() {
+          expect(arrayToStr(base64.decode.bytes(base64Bytes[i]))).to.be(arrayToStr(bytes[i]));
+        });
+      })(i);
+    }
   });
 })(base64);

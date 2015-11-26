@@ -71,14 +71,14 @@ Code
 base64.encode('Man is distinguished, not only by his reason, but by this singular passion from other animals, which is a lust of the mind, that by a perseverance of delight in the continued and indefatigable generation of knowledge, exceeds the short vehemence of any carnal pleasure.');
 // TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=
 
+base64.decode('VGhpcyBpcyB0ZXN0Lg==');
+base64.decode.string('VGhpcyBpcyB0ZXN0Lg==');
+// This is test.
+
 
 /* Supports UTF-8 encoding: */
 base64.encode('中文');
 // 5Lit5paH
-
-base64.decode('VGhpcyBpcyB0ZXN0Lg==');
-base64.decode.string('VGhpcyBpcyB0ZXN0Lg==');
-// This is test.
 
 
 /* Supports bytes: */
@@ -92,6 +92,9 @@ base64.encode(new ArrayBuffer(3));
 base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg=='); 
 // [84, 104, 105, 115, 32, 105, 115, 32, 116, 101, 115, 116, 46]
 ```
+
+## Notice
+In node.js, hi-base64 uses Buffer to encode / decode. It will not throw an exception when decoding a non-UTF8 base64 string as UTF-8 string. In browsers, hi-base64 will throw an exception in this case.
 
 ## Benchmark
 [Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  
