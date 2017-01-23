@@ -1,4 +1,4 @@
-(function(base64) {
+(function (base64) {
   var strs = [
     'Man is distinguished, not only by his reason, but by this singular passion from other animals, which is a lust of the mind, that by a perseverance of delight in the continued and indefatigable generation of knowledge, exceeds the short vehemence of any carnal pleasure.',
     'Base64 is a group of similar binary-to-text encoding schemes that represent binary data in an ASCII string format by translating it into a radix-64 representation.',
@@ -51,45 +51,45 @@
   ];
 
   function arrayToStr(array) {
-    if(array.constructor == ArrayBuffer) {
+    if(array.constructor === ArrayBuffer) {
       array = new Uint8Array(array);
     }
     return Array.prototype.join.call(array, ',');
   }
 
-  describe('#encode', function() {
-    context('when ascii', function() {
-      context('without ascii option', function() {
-        for(var i = 0;i < strs.length;++i) {
-          (function(i) {
-            it('should be equal', function() {
+  describe('#encode', function () {
+    context('when ascii', function () {
+      context('without ascii option', function () {
+        for (var i = 0; i < strs.length; ++i) {
+          (function (i) {
+            it('should be equal', function () {
               expect(base64.encode(strs[i])).to.be(base64Strs[i]);
             });
           })(i);
         }
       });
 
-      context('with ascii option', function() {
-        it('should be equal', function() {
+      context('with ascii option', function () {
+        it('should be equal', function () {
           expect(base64.encode(strs[0], true)).to.be(base64Strs[0]);
         });
       });
     });
 
-    context('when UTF8', function() {
-      for(var i = 0;i < utf8Str.length;++i) {
-        (function(i) {
-          it('should be equal', function() {
+    context('when UTF8', function () {
+      for (var i = 0; i < utf8Str.length; ++i) {
+        (function (i) {
+          it('should be equal', function () {
             expect(base64.encode(utf8Str[i])).to.be(base64Utf8Strs[i]);
           });
         })(i);
       }
     });
 
-    context('when Bytes', function() {
-      for(var i = 0;i < bytes.length;++i) {
-        (function(i) {
-          it('should be equal', function() {
+    context('when Bytes', function () {
+      for (var i = 0; i < bytes.length; ++i) {
+        (function (i) {
+          it('should be equal', function () {
             expect(base64.encode(bytes[i])).to.be(base64Bytes[i]);
           });
         })(i);
@@ -97,41 +97,41 @@
     });
   });
 
-  describe('#decode', function() {
-    context('when ascii', function() {
-      context('without ascii option', function() {
-        for(var i = 0;i < strs.length;++i) {
-          (function(i) {
-            it('should be equal', function() {
+  describe('#decode', function () {
+    context('when ascii', function () {
+      context('without ascii option', function () {
+        for (var i = 0; i < strs.length; ++i) {
+          (function (i) {
+            it('should be equal', function () {
               expect(base64.decode(base64Strs[i])).to.be(strs[i]);
             });
           })(i);
         }
       });
 
-      context('with ascii option', function() {
-        it('should be equal', function() {
+      context('with ascii option', function () {
+        it('should be equal', function () {
           expect(base64.decode(base64Strs[0], true)).to.be(strs[0]);
         });
       });
     });
 
-    context('when UTF8', function() {
-      for(var i = 0;i < utf8Str.length;++i) {
-        (function(i) {
-          it('should be equal', function() {
+    context('when UTF8', function () {
+      for (var i = 0; i < utf8Str.length; ++i) {
+        (function (i) {
+          it('should be equal', function () {
             expect(base64.decode(base64Utf8Strs[i])).to.be(utf8Str[i]);
           });
         })(i);
       }
     });
 
-    if(typeof HI_BASE64_TEST != 'undefined') {
-      context('when non-UTF8 as UTF8', function() {
-        for(var i = 0;i < base64NonUtf8Strs.length;++i) {
-          (function(i) {
-            it('should throw exception', function() {
-              expect(function() {
+    if (typeof HI_BASE64_NO_NODE_JS !== 'undefined') {
+      context('when non-UTF8 as UTF8', function () {
+        for (var i = 0; i < base64NonUtf8Strs.length; ++i) {
+          (function (i) {
+            it('should throw exception', function () {
+              expect(function () {
                 base64.decode(base64NonUtf8Strs[i]);
               }).to.throwError();
             });
@@ -139,23 +139,22 @@
         }
       });
     }
-
   });
 
-  describe('#decode.string', function() {
-    for(var i = 0;i < strs.length;++i) {
-      (function(i) {
-        it('should be equal', function() {
+  describe('#decode.string', function () {
+    for (var i = 0; i < strs.length; ++i) {
+      (function (i) {
+        it('should be equal', function () {
           expect(base64.decode.string(base64Strs[i])).to.be(strs[i]);
         });
       })(i);
     }
   });
 
-  describe('#decode.bytes', function() {
-    for(var i = 0;i < bytes.length;++i) {
-      (function(i) {
-        it('should be equal', function() {
+  describe('#decode.bytes', function () {
+    for (var i = 0; i < bytes.length; ++i) {
+      (function (i) {
+        it('should be equal', function () {
           expect(arrayToStr(base64.decode.bytes(base64Bytes[i]))).to.be(arrayToStr(bytes[i]));
         });
       })(i);

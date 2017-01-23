@@ -1,3 +1,4 @@
+// Node.js env
 expect = require('expect.js');
 base64 = require('../src/base64.js');
 require('./test.js');
@@ -6,7 +7,20 @@ delete require.cache[require.resolve('../src/base64.js')];
 delete require.cache[require.resolve('./test.js')];
 base64 = null;
 
-HI_BASE64_TEST = true;
+// Webpack browser env
+HI_BASE64_NO_NODE_JS = true;
+window = global;
+base64 = require('../src/base64.js');
+require('./test.js');
+
+delete require.cache[require.resolve('../src/base64.js')];
+delete require.cache[require.resolve('./test.js')];
+base64 = null;
+
+// browser env
+HI_BASE64_NO_NODE_JS = true;
+HI_BASE64_NO_COMMON_JS = true;
+window = global;
 require('../src/base64.js');
 require('./test.js');
 
@@ -14,6 +28,23 @@ delete require.cache[require.resolve('../src/base64.js')];
 delete require.cache[require.resolve('./test.js')];
 base64 = null;
 
+// browser env with atob
+HI_BASE64_NO_NODE_JS = true;
+HI_BASE64_NO_COMMON_JS = true;
+window = global;
+require('../src/base64.js');
+atob = base64.atob;
+btoa = base64.btoa;
+require('./test.js');
+
+delete require.cache[require.resolve('../src/base64.js')];
+delete require.cache[require.resolve('./test.js')];
+base64 = null;
+
+// browser AMD
+HI_BASE64_NO_NODE_JS = true;
+HI_BASE64_NO_COMMON_JS = true;
+window = global;
 define = function(func) {
   base64 = func();
   require('./test.js');
@@ -21,12 +52,3 @@ define = function(func) {
 define.amd = true;
 
 require('../src/base64.js');
-
-atob = base64.atob;
-btoa = base64.btoa;
-delete require.cache[require.resolve('../src/base64.js')];
-delete require.cache[require.resolve('./test.js')];
-base64 = null;
-
-require('../src/base64.js');
-require('./test.js');

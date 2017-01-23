@@ -29,7 +29,13 @@ base64.decode('Base64 string to decode');
 ```
 If you use node.js, you should require the module first:
 ```JavaScript
-base64 = require('hi-base64');
+var base64 = require('hi-base64');
+```
+It supports AMD:
+```JavaScript
+require(['your/path/hi-baes64.js'], function (baes64) {
+// ...
+});
 ```
 ### Methods
 
@@ -96,45 +102,10 @@ base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg==');
 ## Notice
 In node.js, hi-base64 uses Buffer to encode / decode. It will not throw an exception when decoding a non-UTF8 base64 string as UTF-8 string. In browsers, hi-base64 will throw an exception in this case.
 
-## Benchmark
-[Encode ASCII](http://jsperf.com/base64-encode-ascii/3)  
-[Encode UTF8](http://jsperf.com/base64-encode-utf8/3)  
-[Decode ASCII](http://jsperf.com/base64-decode-ascii/2)  
-[Decode UTF8](http://jsperf.com/base64-decode-utf8/2)  
 
-## Extensions
-### jQuery
-If you prefer jQuery style, you can add following code to add a jQuery extension.
-
-Code
-```JavaScript
-jQuery.base64 = base64
-```
-And then you could use like this:
-```JavaScript
-$.base64.encode('String to encode');
-$.base64.decode('Base64 string to decode');
-```
-### Prototype
-If you prefer prototype style, you can add following code to add a prototype extension.
-
-Code
-```JavaScript
-String.prototype.base64Encode = function(asciiOnly) {
-  return base64.encode(this, asciiOnly);
-};
-String.prototype.base64Decode = function(asciiOnly) {
-  return base64.decode(this, asciiOnly);
-};
-```
-And then you could use like this:
-```JavaScript
-'String to encode'.base64Encode();
-'Base64 string to decode'.base64Decode();
-```
 ## License
 The project is released under the [MIT license](http://www.opensource.org/licenses/MIT).
 
 ## Contact
 The project's website is located at https://github.com/emn178/hi-base64  
-Author: emn178@gmail.com
+Author: Chen, Yi-Cyuan <emn178@gmail.com>
