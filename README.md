@@ -5,8 +5,8 @@
 A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.  
 
 ## Demo
-[Base64 Encode Online](http://emn178.github.io/online-tools/base64_encode.html)  
-[Base64 Decode Online](http://emn178.github.io/online-tools/base64_decode.html)  
+[Base64 Encode Online](https://emn178.github.io/online-tools/base64_encode.html)  
+[Base64 Decode Online](https://emn178.github.io/online-tools/base64_decode.html)  
 
 ## Download
 [Compress](https://raw.github.com/emn178/hi-base64/master/build/base64.min.js)  
@@ -26,49 +26,52 @@ You could use like this:
 ```JavaScript
 base64.encode('String to encode');
 base64.decode('Base64 string to decode');
+base64.decode.bytes('Base64 string to decode as bytes');
 ```
+
+### Node.js
 If you use node.js, you should require the module first:
 ```JavaScript
-var base64 = require('hi-base64');
+const { encode, decode } = require('hi-bas64');
 ```
+
+### TypeScript
+If you use TypeScript, you can import like this:
+```TypeScript
+import { encode, decode } from 'hi-bas64';
+```
+
+## RequireJS
 It supports AMD:
 ```JavaScript
-require(['your/path/hi-baes64.js'], function (baes64) {
+require(['your/path/base64.js'], function(base64) {
 // ...
 });
 ```
+
 ### Methods
-
 #### base64.encode(str, asciiOnly)
-
 Encode string to base64, set asciiOnly to true for better performace.
 
 ##### *str: `String`*
-
 String to encode.
 
 ##### *asciiOnly: `Boolean` (default: `false`)*
-
 Specify the string encoding is ASCII.
 
 #### base64.decode(base64Str, asciiOnly)
-
 Decode base64 string, set asciiOnly to true for better performace. `base64.decode.string` is alias to this method.
 
 ##### *base64Str: `String`*
-
 Base64 string to decode.
 
 ##### *asciiOnly: `Boolean` (default: `false`)*
-
 Specify the string encoding is ASCII.
 
 #### base64.decode.bytes(base64Str)
-
 Decode base64 string and return bytes `Array`.
 
 ##### *base64Str: `String`*
-
 Base64 string to decode.
 
 ## Example
@@ -95,7 +98,7 @@ base64.encode(new Uint8Array([0, 1, 2]));
 base64.encode(new ArrayBuffer(3));
 // AAAA
 
-base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg=='); 
+base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg==');
 // [84, 104, 105, 115, 32, 105, 115, 32, 116, 101, 115, 116, 46]
 ```
 
@@ -104,7 +107,7 @@ In node.js, hi-base64 uses Buffer to encode / decode. It will not throw an excep
 
 
 ## License
-The project is released under the [MIT license](http://www.opensource.org/licenses/MIT).
+The project is released under the [MIT license](https://opensource.org/license/mit/).
 
 ## Contact
 The project's website is located at https://github.com/emn178/hi-base64  

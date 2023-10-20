@@ -1,6 +1,6 @@
 {
   "name": "hi-base64",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "main": ["src/base64.js"],
   "ignore": [
     "samples",

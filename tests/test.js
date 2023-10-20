@@ -6,7 +6,7 @@
 
   var base64Strs = [
     'TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=',
-    'QmFzZTY0IGlzIGEgZ3JvdXAgb2Ygc2ltaWxhciBiaW5hcnktdG8tdGV4dCBlbmNvZGluZyBzY2hlbWVzIHRoYXQgcmVwcmVzZW50IGJpbmFyeSBkYXRhIGluIGFuIEFTQ0lJIHN0cmluZyBmb3JtYXQgYnkgdHJhbnNsYXRpbmcgaXQgaW50byBhIHJhZGl4LTY0IHJlcHJlc2VudGF0aW9uLg==',
+    'QmFzZTY0IGlzIGEgZ3JvdXAgb2Ygc2ltaWxhciBiaW5hcnktdG8tdGV4dCBlbmNvZGluZyBzY2hlbWVzIHRoYXQgcmVwcmVzZW50IGJpbmFyeSBkYXRhIGluIGFuIEFTQ0lJIHN0cmluZyBmb3JtYXQgYnkgdHJhbnNsYXRpbmcgaXQgaW50byBhIHJhZGl4LTY0IHJlcHJlc2VudGF0aW9uLg=='
   ];
 
   var utf8Str = [
@@ -32,6 +32,13 @@
     '33k=',
     '7aCA',
     '9JCAgA=='
+  ];
+
+  var dirtyBase64Strs = [
+    'VGVzdA',
+    'VGVzdA=!',
+    'VGVzdA==!!!',
+    'VGV\r\nzd\nA=='
   ];
 
   var bytes = [
@@ -107,12 +114,28 @@
             });
           })(i);
         }
+
+        for (var i = 0; i < dirtyBase64Strs.length; ++i) {
+          (function (i) {
+            it('should be equal', function () {
+              expect(base64.decode(dirtyBase64Strs[i])).to.be('Test');
+            });
+          })(i);
+        }
       });
 
       context('with ascii option', function () {
         it('should be equal', function () {
           expect(base64.decode(base64Strs[0], true)).to.be(strs[0]);
         });
+
+        for (var i = 0; i < dirtyBase64Strs.length; ++i) {
+          (function (i) {
+            it('should be equal', function () {
+              expect(base64.decode(dirtyBase64Strs[i], true)).to.be('Test');
+            });
+          })(i);
+        }
       });
     });
 
@@ -159,5 +182,9 @@
         });
       })(i);
     }
+
+    it('should be equal', function () {
+      expect(arrayToStr(base64.decode.bytes('VGV\r\nzd\nA=='))).to.be(arrayToStr([84, 101, 115, 116]));
+    });
   });
 })(base64);

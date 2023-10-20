@@ -1,15 +1,16 @@
 /*
  * [hi-base64]{@link https://github.com/emn178/hi-base64}
  *
- * @version 0.2.1
+ * @version 0.3.0
  * @author Chen, Yi-Cyuan [emn178@gmail.com]
- * @copyright Chen, Yi-Cyuan 2014-2017
+ * @copyright Chen, Yi-Cyuan 2014-2023
  * @license MIT
  */
 /*jslint bitwise: true */
 (function () {
   'use strict';
 
+  var ENCODING_ERROR = 'not a UTF-8 string';
   var root = typeof window === 'object' ? window : {};
   var NODE_JS = !root.HI_BASE64_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
   if (NODE_JS) {
@@ -18,16 +19,15 @@
   var COMMON_JS = !root.HI_BASE64_NO_COMMON_JS && typeof module === 'object' && module.exports;
   var AMD = typeof define === 'function' && define.amd;
   var BASE64_ENCODE_CHAR = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
-  var BASE64_DECODE_CHAR = {
-    'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8,
-    'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15, 'Q': 16, 
-    'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23, 'Y': 24, 
-    'Z': 25, 'a': 26, 'b': 27, 'c': 28, 'd': 29, 'e': 30, 'f': 31, 'g': 32, 
-    'h': 33, 'i': 34, 'j': 35, 'k': 36, 'l': 37, 'm': 38, 'n': 39, 'o': 40, 
-    'p': 41, 'q': 42, 'r': 43, 's': 44, 't': 45, 'u': 46, 'v': 47, 'w': 48, 
-    'x': 49, 'y': 50, 'z': 51, '0': 52, '1': 53, '2': 54, '3': 55, '4': 56, 
-    '5': 57, '6': 58, '7': 59, '8': 60, '9': 61, '+': 62, '/': 63, '-': 62,
-    '_': 63
+  var BASE64_DECODE_CHAR = {};
+  for (var i  = 0; i < 64; ++i) {
+    BASE64_DECODE_CHAR[BASE64_ENCODE_CHAR[i]] = i;
+  }
+  BASE64_DECODE_CHAR['-'] = 62;
+  BASE64_DECODE_CHAR['_'] = 63;
+
+  var cleanBase64Str = function (base64Str) {
+    return base64Str.split('=')[0].replace(/[\r\n]/g, '');
   };
 
   var utf8ToBytes = function (str) {
@@ -55,12 +55,8 @@
   };
 
   var decodeAsBytes = function (base64Str) {
+    base64Str = cleanBase64Str(base64Str);
     var v1, v2, v3, v4, bytes = [], index = 0, length = base64Str.length;
-    if (base64Str.charAt(length - 2) === '=') {
-      length -= 2;
-    } else if (base64Str.charAt(length - 1) === '=') {
-      length -= 1;
-    }
 
     // 4 char to 3 bytes
     for (var i = 0, count = length >> 2 << 2; i < count;) {
@@ -90,123 +86,136 @@
   };
 
   var encodeFromBytes = function (bytes) {
-    var v1, v2, v3, base64Str = '', length = bytes.length;
+    var v1, v2, v3, base64Str = [], length = bytes.length;
     for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
       v1 = bytes[i++];
       v2 = bytes[i++];
       v3 = bytes[i++];
-      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-        BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-        BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63] +
-        BASE64_ENCODE_CHAR[v3 & 63];
+      base64Str.push(
+        BASE64_ENCODE_CHAR[v1 >>> 2],
+        BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+        BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63],
+        BASE64_ENCODE_CHAR[v3 & 63]
+      );
     }
-    
+
     // remain char
     var remain = length - count;
     if (remain === 1) {
       v1 = bytes[i];
-      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-        BASE64_ENCODE_CHAR[(v1 << 4) & 63] +
-        '==';
+      base64Str.push(
+        BASE64_ENCODE_CHAR[v1 >>> 2],
+        BASE64_ENCODE_CHAR[(v1 << 4) & 63],
+        '=='
+      );
     } else if (remain === 2) {
       v1 = bytes[i++];
       v2 = bytes[i];
-      base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-        BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-        BASE64_ENCODE_CHAR[(v2 << 2) & 63] +
-        '=';
+      base64Str.push(
+        BASE64_ENCODE_CHAR[v1 >>> 2],
+        BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+        BASE64_ENCODE_CHAR[(v2 << 2) & 63],
+        '='
+      );
     }
-    return base64Str;
+    return base64Str.join('');
   };
 
   var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode;
   if (NODE_JS) {
     var Buffer = require('buffer').Buffer;
     btoa = function (str) {
-      return new Buffer(str, 'ascii').toString('base64');
+      return Buffer.from(str, 'ascii').toString('base64');
     };
 
     utf8Base64Encode = function (str) {
-      return new Buffer(str).toString('base64');
+      return Buffer.from(str).toString('base64');
     };
 
     encodeFromBytes = utf8Base64Encode;
 
     atob = function (base64Str) {
-      return new Buffer(base64Str, 'base64').toString('ascii');
+      return Buffer.from(base64Str, 'base64').toString('ascii');
     };
 
     utf8Base64Decode = function (base64Str) {
-      return new Buffer(base64Str, 'base64').toString();
+      return Buffer.from(base64Str, 'base64').toString();
     };
   } else if (!btoa) {
     btoa = function (str) {
-      var v1, v2, v3, base64Str = '', length = str.length;
+      var v1, v2, v3, base64Str = [], length = str.length;
       for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
         v1 = str.charCodeAt(i++);
         v2 = str.charCodeAt(i++);
         v3 = str.charCodeAt(i++);
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-          BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63] +
-          BASE64_ENCODE_CHAR[v3 & 63];
+        base64Str.push(
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+          BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63],
+          BASE64_ENCODE_CHAR[v3 & 63]
+        );
       }
-      
+
       // remain char
       var remain = length - count;
       if (remain === 1) {
         v1 = str.charCodeAt(i);
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4) & 63] +
-          '==';
+        base64Str.push(
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4) & 63],
+          '=='
+        );
       } else if (remain === 2) {
         v1 = str.charCodeAt(i++);
         v2 = str.charCodeAt(i);
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-          BASE64_ENCODE_CHAR[(v2 << 2) & 63] +
-          '=';
+        base64Str.push(
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+          BASE64_ENCODE_CHAR[(v2 << 2) & 63],
+          '='
+        );
       }
-      return base64Str;
+      return base64Str.join('');
     };
 
     utf8Base64Encode = function (str) {
-      var v1, v2, v3, base64Str = '', bytes = utf8ToBytes(str), length = bytes.length;
+      var v1, v2, v3, base64Str = [], bytes = utf8ToBytes(str), length = bytes.length;
       for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
         v1 = bytes[i++];
         v2 = bytes[i++];
         v3 = bytes[i++];
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-          BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63] +
-          BASE64_ENCODE_CHAR[v3 & 63];
+        base64Str.push(
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+          BASE64_ENCODE_CHAR[(v2 << 2 | v3 >>> 6) & 63],
+          BASE64_ENCODE_CHAR[v3 & 63]
+        )
       }
-      
+
       // remain char
       var remain = length - count;
       if (remain === 1) {
         v1 = bytes[i];
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4) & 63] +
-          '==';
+        base64Str.push (
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4) & 63],
+          '=='
+        );
       } else if (remain === 2) {
         v1 = bytes[i++];
         v2 = bytes[i];
-        base64Str += BASE64_ENCODE_CHAR[v1 >>> 2] +
-          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63] +
-          BASE64_ENCODE_CHAR[(v2 << 2) & 63] +
-          '=';
+        base64Str.push(
+          BASE64_ENCODE_CHAR[v1 >>> 2],
+          BASE64_ENCODE_CHAR[(v1 << 4 | v2 >>> 4) & 63],
+          BASE64_ENCODE_CHAR[(v2 << 2) & 63],
+          '='
+        );
       }
-      return base64Str;
+      return base64Str.join('');
     };
 
     atob = function (base64Str) {
-      var v1, v2, v3, v4, str = '', length = base64Str.length;
-      if (base64Str.charAt(length - 2) === '=') {
-        length -= 2;
-      } else if (base64Str.charAt(length - 1) === '=') {
-        length -= 1;
-      }
+      var v1, v2, v3, v4, str = [], length = base64Str.length;
 
       // 4 char to 3 bytes
       for (var i = 0, count = length >> 2 << 2; i < count;) {
@@ -214,9 +223,11 @@
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str += String.fromCharCode((v1 << 2 | v2 >>> 4) & 255) +
-          String.fromCharCode((v2 << 4 | v3 >>> 2) & 255) +
-          String.fromCharCode((v3 << 6 | v4) & 255);
+        str.push(
+          String.fromCharCode((v1 << 2 | v2 >>> 4) & 255),
+          String.fromCharCode((v2 << 4 | v3 >>> 2) & 255),
+          String.fromCharCode((v3 << 6 | v4) & 255)
+        );
       }
 
       // remain bytes
@@ -224,24 +235,26 @@
       if (remain === 2) {
         v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str += String.fromCharCode((v1 << 2 | v2 >>> 4) & 255);
+        str.push(String.fromCharCode((v1 << 2 | v2 >>> 4) & 255))
       } else if (remain === 3) {
         v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str += String.fromCharCode((v1 << 2 | v2 >>> 4) & 255) +
-               String.fromCharCode((v2 << 4 | v3 >>> 2) & 255);
+        str.push(
+          String.fromCharCode((v1 << 2 | v2 >>> 4) & 255),
+          String.fromCharCode((v2 << 4 | v3 >>> 2) & 255)
+        )
       }
-      return str;
+      return str.join('');
     };
 
     utf8Base64Decode = function (base64Str) {
-      var str = '', bytes = decodeAsBytes(base64Str), length = bytes.length;
+      var str = [], bytes = decodeAsBytes(base64Str), length = bytes.length;
       var i = 0, followingChars = 0, b, c;
       while (i < length) {
         b = bytes[i++];
         if (b <= 0x7F) {
-          str += String.fromCharCode(b);
+          str.push(String.fromCharCode(b));
           continue;
         } else if (b > 0xBF && b <= 0xDF) {
           c = b & 0x1F;
@@ -253,69 +266,71 @@
           c = b & 0x07;
           followingChars = 3;
         } else {
-          throw 'not a UTF-8 string';
+          throw new Error(ENCODING_ERROR);
         }
 
         for (var j = 0; j < followingChars; ++j) {
           b = bytes[i++];
           if (b < 0x80 || b > 0xBF) {
-            throw 'not a UTF-8 string';
+            throw new Error(ENCODING_ERROR);
           }
           c <<= 6;
           c += b & 0x3F;
         }
         if (c >= 0xD800 && c <= 0xDFFF) {
-          throw 'not a UTF-8 string';
+          throw new Error(ENCODING_ERROR);
         }
         if (c > 0x10FFFF) {
-          throw 'not a UTF-8 string';
+          throw new Error(ENCODING_ERROR);
         }
 
         if (c <= 0xFFFF) {
-          str += String.fromCharCode(c);
+          str.push(String.fromCharCode(c));
         } else {
           c -= 0x10000;
-          str += String.fromCharCode((c >> 10) + 0xD800);
-          str += String.fromCharCode((c & 0x3FF) + 0xDC00);
+          str.push(
+            String.fromCharCode((c >> 10) + 0xD800),
+            String.fromCharCode((c & 0x3FF) + 0xDC00)
+          );
         }
       }
-      return str;
+      return str.join('');
     };
   } else {
     utf8Base64Encode = function (str) {
-      var result = '';
+      var result = [];
       for (var i = 0; i < str.length; i++) {
         var charcode = str.charCodeAt(i);
         if (charcode < 0x80) {
-          result += String.fromCharCode(charcode);
+          result.push(String.fromCharCode(charcode));
         } else if (charcode < 0x800) {
-          result += String.fromCharCode(0xc0 | (charcode >> 6)) +
-            String.fromCharCode(0x80 | (charcode & 0x3f));
+          result.push(String.fromCharCode(0xc0 | (charcode >> 6)),
+            String.fromCharCode(0x80 | (charcode & 0x3f)));
         } else if (charcode < 0xd800 || charcode >= 0xe000) {
-          result += String.fromCharCode(0xe0 | (charcode >> 12)) +
-            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)) +
-            String.fromCharCode(0x80 | (charcode & 0x3f));
+          result.push(String.fromCharCode(0xe0 | (charcode >> 12)),
+            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)),
+            String.fromCharCode(0x80 | (charcode & 0x3f)));
         } else {
           charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(++i) & 0x3ff));
-          result += String.fromCharCode(0xf0 | (charcode >> 18)) +
-            String.fromCharCode(0x80 | ((charcode >> 12) & 0x3f)) +
-            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)) +
-            String.fromCharCode(0x80 | (charcode & 0x3f));
+          result.push(String.fromCharCode(0xf0 | (charcode >> 18)),
+            String.fromCharCode(0x80 | ((charcode >> 12) & 0x3f)),
+            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)),
+            String.fromCharCode(0x80 | (charcode & 0x3f)));
         }
       }
-      return btoa(result);
+      return btoa(result.join(''));
     };
 
     utf8Base64Decode = function (base64Str) {
-      var tmpStr = atob(base64Str.trim('=').replace(/-/g, '+').replace(/_/g, '/'));
+      var tmpStr = atob(base64Str.replace(/-/g, '+').replace(/_/g, '/'));
       if (!/[^\x00-\x7F]/.test(tmpStr)) {
         return tmpStr;
       }
-      var str = '', i = 0, length = tmpStr.length, followingChars = 0, b, c;
+      var str = [], i = 0, length = tmpStr.length, followingChars = 0, b, c;
       while (i < length) {
         b = tmpStr.charCodeAt(i++);
         if (b <= 0x7F) {
-          str += String.fromCharCode(b);
+          str.push(String.fromCharCode(b));
           continue;
         } else if (b > 0xBF && b <= 0xDF) {
           c = b & 0x1F;
@@ -327,36 +342,38 @@
           c = b & 0x07;
           followingChars = 3;
         } else {
-          throw 'not a UTF-8 string';
+          throw new Error(ENCODING_ERROR);
         }
 
         for (var j = 0; j < followingChars; ++j) {
           b = tmpStr.charCodeAt(i++);
           if (b < 0x80 || b > 0xBF) {
-            throw 'not a UTF-8 string';
+            throw new Error(ENCODING_ERROR);
           }
           c <<= 6;
           c += b & 0x3F;
         }
         if (c >= 0xD800 && c <= 0xDFFF) {
-          throw 'not a UTF-8 string'; 
+          throw new Error(ENCODING_ERROR);
         }
         if (c > 0x10FFFF) {
-          throw 'not a UTF-8 string';
+          throw new Error(ENCODING_ERROR);
         }
 
         if (c <= 0xFFFF) {
-          str += String.fromCharCode(c);
+          str.push(String.fromCharCode(c));
         } else {
           c -= 0x10000;
-          str += String.fromCharCode((c >> 10) + 0xD800);
-          str += String.fromCharCode((c & 0x3FF) + 0xDC00);
+          str.push(
+            String.fromCharCode((c >> 10) + 0xD800),
+            String.fromCharCode((c & 0x3FF) + 0xDC00)
+          );
         }
       }
-      return str;
+      return str.join('');
     };
   }
-  
+
   var encode = function (str, asciiOnly) {
     var notString = typeof(str) != 'string';
     if (notString && str.constructor === root.ArrayBuffer) {
@@ -374,6 +391,7 @@
   };
 
   var decode = function (base64Str, asciiOnly) {
+    base64Str = cleanBase64Str(base64Str);
     return asciiOnly ? atob(base64Str) : utf8Base64Decode(base64Str);
   };
 
