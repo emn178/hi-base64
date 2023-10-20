@@ -41,7 +41,7 @@ If you use TypeScript, you can import like this:
 import { encode, decode } from 'hi-bas64';
 ```
 
-## RequireJS
+### RequireJS
 It supports AMD:
 ```JavaScript
 require(['your/path/base64.js'], function(base64) {
