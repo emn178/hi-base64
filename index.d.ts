@@ -25,19 +25,5 @@ interface Decode {
   bytes(base64Str: string): number[];
 }
 
-interface Base64 {
-  /**
-   * Encode to base64 string
-   *
-   * @param str The input data you want to encode.
-   * @param asciiOnly When input is ascii string, you can set it true to skip detection for better performanace.
-   */
-  encode(str: StringOrBytes, asciiOnly = false): string;
-
-  /**
-   * Return hash in hex string.
-   */
-  decode: Decode;
-}
-
-export var base64: Base64;
+export function encode(str: StringOrBytes, asciiOnly = false): string;
+export var decode: Decode;;

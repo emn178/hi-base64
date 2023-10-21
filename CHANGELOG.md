@@ -1,5 +1,13 @@
 # Change Log
 
+## v0.3.1 / 2023-10-21
+### Added
+- WebWork support.
+- ESM support.
+
+### Fixed
+- TypeScript interfaces.
+
 ## v0.3.0 / 2023-10-20
 ### Added
 - TypeScript interfaces.

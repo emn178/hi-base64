@@ -149,7 +149,7 @@
       }
     });
 
-    if (typeof HI_BASE64_NO_NODE_JS !== 'undefined') {
+    if (typeof HI_BASE64_NO_NODE_JS !== 'undefined' && typeof HI_BASE64_NO_COMMON_JS !== 'undefined') {
       context('when non-UTF8 as UTF8', function () {
         for (var i = 0; i < base64NonUtf8Strs.length; ++i) {
           (function (i) {

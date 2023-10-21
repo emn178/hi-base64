@@ -1,12 +1,13 @@
 {
   "name": "hi-base64",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.",
   "main": "src/base64.js",
   "devDependencies": {
     "expect.js": "~0.3.1",
     "mocha": "~10.2.0",
     "nyc": "^15.1.0",
+    "tiny-worker": "^2.3.0",
     "uglify-js": "^3.1.9"
   },
   "scripts": {

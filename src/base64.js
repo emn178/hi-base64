@@ -1,7 +1,7 @@
 /*
  * [hi-base64]{@link https://github.com/emn178/hi-base64}
  *
- * @version 0.3.0
+ * @version 0.3.1
  * @author Chen, Yi-Cyuan [emn178@gmail.com]
  * @copyright Chen, Yi-Cyuan 2014-2023
  * @license MIT
@@ -11,10 +11,17 @@
   'use strict';
 
   var ENCODING_ERROR = 'not a UTF-8 string';
-  var root = typeof window === 'object' ? window : {};
+  var WINDOW = typeof window === 'object';
+  var root = WINDOW ? window : {};
+  if (root.HI_BASE64_NO_WINDOW) {
+    WINDOW = false;
+  }
+  var WEB_WORKER = !WINDOW && typeof self === 'object';
   var NODE_JS = !root.HI_BASE64_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
   if (NODE_JS) {
     root = global;
+  } else if (WEB_WORKER) {
+    root = self;
   }
   var COMMON_JS = !root.HI_BASE64_NO_COMMON_JS && typeof module === 'object' && module.exports;
   var AMD = typeof define === 'function' && define.amd;
@@ -395,12 +402,11 @@
     return asciiOnly ? atob(base64Str) : utf8Base64Decode(base64Str);
   };
 
-  var exports = {
-    encode: encode,
-    decode: decode,
-    atob: atob,
-    btoa: btoa
-  };
+  var exports = {};
+  exports.encode = encode;
+  exports.decode = decode;
+  exports.atob = atob;
+  exports.btoa = btoa;
   decode.bytes = decodeAsBytes;
   decode.string = decode;
 

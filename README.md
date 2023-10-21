@@ -22,6 +22,7 @@ For node.js, you can use this command to install:
     npm install hi-base64
 
 ## Usage
+### Browser
 You could use like this:
 ```JavaScript
 base64.encode('String to encode');
@@ -29,10 +30,16 @@ base64.decode('Base64 string to decode');
 base64.decode.bytes('Base64 string to decode as bytes');
 ```
 
-### Node.js
-If you use node.js, you should require the module first:
+### CommonJS
+If you use node.js CommonJS, you should require the module first:
 ```JavaScript
 const { encode, decode } = require('hi-bas64');
+```
+
+### ESM
+If you use node.js ESM, you can import like this:
+```TypeScript
+import { encode, decode } from 'hi-bas64';
 ```
 
 ### TypeScript
@@ -44,7 +51,7 @@ import { encode, decode } from 'hi-bas64';
 ### RequireJS
 It supports AMD:
 ```JavaScript
-require(['your/path/base64.js'], function(base64) {
+require(['your/path/base64.js'], function (base64) {
 // ...
 });
 ```
