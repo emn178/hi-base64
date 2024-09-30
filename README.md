@@ -57,7 +57,7 @@ require(['your/path/base64.js'], function (base64) {
 ```
 
 ### Methods
-#### base64.encode(str, asciiOnly)
+#### base64.encode(str, asciiOnly, format)
 Encode string to base64, set asciiOnly to true for better performace.
 
 ##### *str: `String`*
@@ -65,6 +65,14 @@ String to encode.
 
 ##### *asciiOnly: `Boolean` (default: `false`)*
 Specify the string encoding is ASCII.
+
+##### *format: `String` (default: `rfc_4648`)*
+Specify the output format. can be following:
+* rfc_4648
+* rfc_4648_url_safe
+* rfc_2045
+* rfc_2152
+* rfc_3501
 
 #### base64.decode(base64Str, asciiOnly)
 Decode base64 string, set asciiOnly to true for better performace. `base64.decode.string` is alias to this method.
