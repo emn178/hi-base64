@@ -293,4 +293,18 @@
       expect(arrayToStr(base64.decode.bytes('VGV\r\nzd\nA=='))).to.be(arrayToStr([84, 101, 115, 116]));
     });
   });
+
+  describe('#decode.bytes', function () {
+    for (var i = 0; i < bytes.length; ++i) {
+      (function (i) {
+        it('should be equal', function () {
+          expect(arrayToStr(base64.decode.uint8Array(base64Bytes[i]))).to.be(arrayToStr(bytes[i]));
+        });
+      })(i);
+    }
+
+    it('should be equal', function () {
+      expect(arrayToStr(base64.decode.uint8Array('VGV\r\nzd\nA=='))).to.be(arrayToStr([84, 101, 115, 116]));
+    });
+  });
 })(base64);

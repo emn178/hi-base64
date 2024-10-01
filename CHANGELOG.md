@@ -1,11 +1,15 @@
 # Change Log
 
-## v0.4.0 / 2024-09-30
+## v0.4.0 / 2024-10-02
 ### Added
 - RFC 4648 URL Safe support
 - RFC 2045 (MIME) support
 - RFC 2152 (UTF-7) support
 - RFC 3501 (IMAP) support
+- decode as uint8Array
+
+### Improved
+- performance and refactor code.
 
 ## v0.3.1 / 2023-10-21
 ### Added

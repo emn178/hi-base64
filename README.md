@@ -74,6 +74,8 @@ Specify the output format. can be following:
 * rfc_2152
 * rfc_3501
 
+Please refer to [wiki](https://en.wikipedia.org/wiki/Base64#Variants_summary_table).
+
 #### base64.decode(base64Str, asciiOnly)
 Decode base64 string, set asciiOnly to true for better performace. `base64.decode.string` is alias to this method.
 
@@ -85,6 +87,12 @@ Specify the string encoding is ASCII.
 
 #### base64.decode.bytes(base64Str)
 Decode base64 string and return bytes `Array`.
+
+##### *base64Str: `String`*
+Base64 string to decode.
+
+#### base64.decode.uint8Array(base64Str)
+Decode base64 string and return bytes `Uint8Array`.
 
 ##### *base64Str: `String`*
 Base64 string to decode.
@@ -115,6 +123,9 @@ base64.encode(new ArrayBuffer(3));
 
 base64.decode.bytes('VGhpcyBpcyB0ZXN0Lg==');
 // [84, 104, 105, 115, 32, 105, 115, 32, 116, 101, 115, 116, 46]
+
+base64.decode.uint8Array('VGhpcyBpcyB0ZXN0Lg==');
+// Uint8Array(13) [84, 104, 105, 115, 32, 105, 115, 32, 116, 101, 115, 116, 46]
 ```
 
 ## Notice

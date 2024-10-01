@@ -47,6 +47,8 @@
   BASE64_DECODE_CHAR['_'] = 63;
   BASE64_DECODE_CHAR[','] = 63;
 
+  var BATCH_SIZE = 10000;
+
   var cleanBase64Str = function (base64Str) {
     return base64Str.split('=')[0].replace(/[\r\n]/g, '');
   };
@@ -114,79 +116,82 @@
     return bytes;
   };
 
-  var decodeAsBytes = function (base64Str) {
-    base64Str = cleanBase64Str(base64Str);
-    var v1, v2, v3, v4, bytes = [], index = 0, length = base64Str.length;
+  var bytesToUtf8 = function (bytes) {
+    var utf8Bytes = [], length = bytes.length;
+    var i = 0, followingChars = 0, b, c;
+    while (i < length) {
+      b = bytes[i++];
+      if (b <= 0x7F) {
+        utf8Bytes.push(b);
+        continue;
+      } else if (b > 0xBF && b <= 0xDF) {
+        c = b & 0x1F;
+        followingChars = 1;
+      } else if (b <= 0xEF) {
+        c = b & 0x0F;
+        followingChars = 2;
+      } else if (b <= 0xF7) {
+        c = b & 0x07;
+        followingChars = 3;
+      } else {
+        throw new Error(ENCODING_ERROR);
+      }
 
-    // 4 char to 3 bytes
-    for (var i = 0, count = length >> 2 << 2; i < count;) {
-      v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      bytes[index++] = (v1 << 2 | v2 >>> 4) & 255;
-      bytes[index++] = (v2 << 4 | v3 >>> 2) & 255;
-      bytes[index++] = (v3 << 6 | v4) & 255;
+      for (var j = 0; j < followingChars; ++j) {
+        b = bytes[i++];
+        if (b < 0x80 || b > 0xBF) {
+          throw new Error(ENCODING_ERROR);
+        }
+        c <<= 6;
+        c += b & 0x3F;
+      }
+      if (c >= 0xD800 && c <= 0xDFFF) {
+        throw new Error(ENCODING_ERROR);
+      }
+      if (c > 0x10FFFF) {
+        throw new Error(ENCODING_ERROR);
+      }
+
+      if (c <= 0xFFFF) {
+        utf8Bytes.push(c);
+      } else {
+        c -= 0x10000;
+        utf8Bytes.push((c >> 10) + 0xD800, (c & 0x3FF) + 0xDC00);
+      }
     }
+    return bytesToString(utf8Bytes);
+  };
 
-    // remain bytes
-    var remain = length - count;
-    if (remain === 2) {
-      v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      bytes[index++] = (v1 << 2 | v2 >>> 4) & 255;
-    } else if (remain === 3) {
-      v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-      bytes[index++] = (v1 << 2 | v2 >>> 4) & 255;
-      bytes[index++] = (v2 << 4 | v3 >>> 2) & 255;
+  var bytesToString = function (bytes) {
+    var result = [];
+    var batchCount = Math.ceil(bytes.length / BATCH_SIZE);
+    for (var i = 0; i < batchCount; i++) {
+      result.push(String.fromCharCode.apply(null, bytes.slice(i * BATCH_SIZE, Math.min((i + 1) * BATCH_SIZE, bytes.length))));
+    }
+    return result.join('');
+  };
+
+  var binaryStringToBytes = function (str, BytesClass) {
+    var bytes = new BytesClass(str.length);
+    for (var i = 0; i < str.length; ++i) {
+      bytes[i] = str.charCodeAt(i);
     }
     return bytes;
   };
 
-  var encodeFromBytes = function (bytes, format) {
-    var info = getFormatInfo(format);
-    var v1, v2, v3, base64Str = [], length = bytes.length, chars = info[0], padding = info[1], chunk = info[2];
-    for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
-      v1 = bytes[i++];
-      v2 = bytes[i++];
-      v3 = bytes[i++];
-      base64Str.push(
-        chars[v1 >>> 2],
-        chars[(v1 << 4 | v2 >>> 4) & 63],
-        chars[(v2 << 2 | v3 >>> 6) & 63],
-        chars[v3 & 63]
-      );
-    }
-
-    // remain char
-    var remain = length - count;
-    if (remain === 1) {
-      v1 = bytes[i];
-      base64Str.push(
-        chars[v1 >>> 2],
-        chars[(v1 << 4) & 63],
-        padding ? '==' : ''
-      );
-    } else if (remain === 2) {
-      v1 = bytes[i++];
-      v2 = bytes[i];
-      base64Str.push(
-        chars[v1 >>> 2],
-        chars[(v1 << 4 | v2 >>> 4) & 63],
-        chars[(v2 << 2) & 63],
-        padding ? '=' : ''
-      );
-    }
-    base64Str = base64Str.join('');
-    if (chunk) {
-      base64Str = chunkStr(base64Str, 76).join('\r\n');
-    }
-    return base64Str;
+  var decodeAsBytesBase = function (base64Str, BytesClass) {
+    return binaryStringToBytes(atob(cleanBase64Str2(cleanBase64Str(base64Str))), BytesClass);
   };
 
-  var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode;
+  var decodeAsBytes = function (base64Str) {
+    return decodeAsBytesBase(base64Str, Array);
+  };
+
+  var decodeAsUint8Array = function (base64Str) {
+    return decodeAsBytesBase(base64Str, Uint8Array);
+  };
+
+  var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode, encodeFromBytes;
   if (NODE_JS) {
     var Buffer = require('buffer').Buffer;
     btoa = function (str) {
@@ -208,74 +213,72 @@
     };
   } else if (!btoa) {
     btoa = function (str) {
-      var v1, v2, v3, base64Str = [], length = str.length;
-      for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
+      var v1, v2, v3, i = 0, j = 0, length = str.length, remainder = length % 3;
+      var base64Str = new Array(Math.ceil(length / 3) << 2);
+      length -= remainder;
+      while (i < length) {
         v1 = str.charCodeAt(i++);
         v2 = str.charCodeAt(i++);
         v3 = str.charCodeAt(i++);
-        base64Str.push(
-          BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2],
-          BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63],
-          BASE64_ENCODE_CHAR_STANDARD[(v2 << 2 | v3 >>> 6) & 63],
-          BASE64_ENCODE_CHAR_STANDARD[v3 & 63]
-        );
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v2 << 2 | v3 >>> 6) & 63];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v3 & 63];
       }
 
       // remain char
-      var remain = length - count;
-      if (remain === 1) {
+      if (remainder === 1) {
         v1 = str.charCodeAt(i);
-        base64Str.push(
-          BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2],
-          BASE64_ENCODE_CHAR_STANDARD[(v1 << 4) & 63],
-          '=='
-        );
-      } else if (remain === 2) {
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4) & 63];
+        base64Str[j++] = '==';
+      } else if (remainder === 2) {
         v1 = str.charCodeAt(i++);
         v2 = str.charCodeAt(i);
-        base64Str.push(
-          BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2],
-          BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63],
-          BASE64_ENCODE_CHAR_STANDARD[(v2 << 2) & 63],
-          '='
-        );
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63];
+        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v2 << 2) & 63];
+        base64Str[j++] = '=';
       }
       return base64Str.join('');
     };
 
     utf8Base64Encode = function (str, format) {
+      return encodeFromBytes(utf8ToBytes(str), format);
+    };
+
+    encodeFromBytes = function (bytes, format) {
       var info = getFormatInfo(format);
-      var v1, v2, v3, base64Str = [], bytes = utf8ToBytes(str), length = bytes.length, chars = info[0], padding = info[1], chunk = info[2];
-      for (var i = 0, count = parseInt(length / 3) * 3; i < count;) {
+      var v1, v2, v3, i = 0, j = 0, length = bytes.length, remainder = length % 3, chars = info[0], padding = info[1], chunk = info[2];
+      var base64Str = new Array(Math.ceil(length / 3) << 2);
+      length -= remainder;
+      while (i < length) {
         v1 = bytes[i++];
         v2 = bytes[i++];
         v3 = bytes[i++];
-        base64Str.push(
-          chars[v1 >>> 2],
-          chars[(v1 << 4 | v2 >>> 4) & 63],
-          chars[(v2 << 2 | v3 >>> 6) & 63],
-          chars[v3 & 63]
-        )
+        base64Str[j++] = chars[v1 >>> 2];
+        base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+        base64Str[j++] = chars[(v2 << 2 | v3 >>> 6) & 63];
+        base64Str[j++] = chars[v3 & 63];
       }
 
       // remain char
-      var remain = length - count;
-      if (remain === 1) {
+      if (remainder === 1) {
         v1 = bytes[i];
-        base64Str.push (
-          chars[v1 >>> 2],
-          chars[(v1 << 4) & 63],
-          padding ? '==' : ''
-        );
-      } else if (remain === 2) {
+        base64Str[j++] = chars[v1 >>> 2];
+        base64Str[j++] = chars[(v1 << 4) & 63];
+        if (padding) {
+          base64Str[j++] = '=='
+        }
+      } else if (remainder === 2) {
         v1 = bytes[i++];
         v2 = bytes[i];
-        base64Str.push(
-          chars[v1 >>> 2],
-          chars[(v1 << 4 | v2 >>> 4) & 63],
-          chars[(v2 << 2) & 63],
-          padding ? '=' : ''
-        );
+        base64Str[j++] = chars[v1 >>> 2];
+        base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+        base64Str[j++] = chars[(v2 << 2) & 63];
+        if (padding) {
+          base64Str[j++] = '='
+        }
       }
       base64Str = base64Str.join('');
       if (chunk) {
@@ -285,110 +288,74 @@
     };
 
     atob = function (base64Str) {
-      var v1, v2, v3, v4, str = [], length = base64Str.length;
-
+      var v1, v2, v3, v4, i = 0, j = 0, length = base64Str.length, j = 0, remainder = length % 4;
+      var bytes = new Array((length >>> 2) * 3 + (remainder && (remainder - 1)));
+      length -= remainder;
       // 4 char to 3 bytes
-      for (var i = 0, count = length >> 2 << 2; i < count;) {
+      while (i < length) {
         v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str.push(
-          String.fromCharCode((v1 << 2 | v2 >>> 4) & 255),
-          String.fromCharCode((v2 << 4 | v3 >>> 2) & 255),
-          String.fromCharCode((v3 << 6 | v4) & 255)
-        );
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+        bytes[j++] = (v3 << 6 | v4) & 255;
       }
 
       // remain bytes
-      var remain = length - count;
-      if (remain === 2) {
+      if (remainder === 2) {
         v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str.push(String.fromCharCode((v1 << 2 | v2 >>> 4) & 255))
-      } else if (remain === 3) {
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+      } else if (remainder === 3) {
         v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
         v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        str.push(
-          String.fromCharCode((v1 << 2 | v2 >>> 4) & 255),
-          String.fromCharCode((v2 << 4 | v3 >>> 2) & 255)
-        )
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255
+        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
       }
-      return str.join('');
+      return bytesToString(bytes);
     };
 
     utf8Base64Decode = function (base64Str) {
-      var str = [], bytes = decodeAsBytes(base64Str), length = bytes.length;
-      var i = 0, followingChars = 0, b, c;
-      while (i < length) {
-        b = bytes[i++];
-        if (b <= 0x7F) {
-          str.push(String.fromCharCode(b));
-          continue;
-        } else if (b > 0xBF && b <= 0xDF) {
-          c = b & 0x1F;
-          followingChars = 1;
-        } else if (b <= 0xEF) {
-          c = b & 0x0F;
-          followingChars = 2;
-        } else if (b <= 0xF7) {
-          c = b & 0x07;
-          followingChars = 3;
-        } else {
-          throw new Error(ENCODING_ERROR);
-        }
+      return bytesToUtf8(decodeAsBytesBase(base64Str, Array, true));
+    };
 
-        for (var j = 0; j < followingChars; ++j) {
-          b = bytes[i++];
-          if (b < 0x80 || b > 0xBF) {
-            throw new Error(ENCODING_ERROR);
-          }
-          c <<= 6;
-          c += b & 0x3F;
-        }
-        if (c >= 0xD800 && c <= 0xDFFF) {
-          throw new Error(ENCODING_ERROR);
-        }
-        if (c > 0x10FFFF) {
-          throw new Error(ENCODING_ERROR);
-        }
-
-        if (c <= 0xFFFF) {
-          str.push(String.fromCharCode(c));
-        } else {
-          c -= 0x10000;
-          str.push(
-            String.fromCharCode((c >> 10) + 0xD800),
-            String.fromCharCode((c & 0x3FF) + 0xDC00)
-          );
-        }
+    decodeAsBytesBase = function (base64Str, BytesClass, cleaned) {
+      if (!cleaned) {
+        base64Str = cleanBase64Str(base64Str);
       }
-      return str.join('');
+      var v1, v2, v3, v4, i = 0, j = 0, length = base64Str.length, remainder = length % 4;
+      var bytes = new BytesClass((length >>> 2) * 3 + (remainder && (remainder - 1)));
+      length -= remainder;
+      // 4 char to 3 bytes
+      while (i < length) {
+        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+        bytes[j++] = (v3 << 6 | v4) & 255;
+      }
+
+      // remain bytes
+      if (remainder === 2) {
+        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+      } else if (remainder === 3) {
+        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
+        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      }
+      return bytes;
     };
   } else {
     utf8Base64Encode = function (str, format) {
-      var result = [];
-      for (var i = 0; i < str.length; i++) {
-        var charcode = str.charCodeAt(i);
-        if (charcode < 0x80) {
-          result.push(String.fromCharCode(charcode));
-        } else if (charcode < 0x800) {
-          result.push(String.fromCharCode(0xc0 | (charcode >> 6)),
-            String.fromCharCode(0x80 | (charcode & 0x3f)));
-        } else if (charcode < 0xd800 || charcode >= 0xe000) {
-          result.push(String.fromCharCode(0xe0 | (charcode >> 12)),
-            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)),
-            String.fromCharCode(0x80 | (charcode & 0x3f)));
-        } else {
-          charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(++i) & 0x3ff));
-          result.push(String.fromCharCode(0xf0 | (charcode >> 18)),
-            String.fromCharCode(0x80 | ((charcode >> 12) & 0x3f)),
-            String.fromCharCode(0x80 | ((charcode >> 6) & 0x3f)),
-            String.fromCharCode(0x80 | (charcode & 0x3f)));
-        }
-      }
-      return convertFormat(btoa(result.join('')), format);
+      return convertFormat(btoa(bytesToString(utf8ToBytes(str))), format);
     };
 
     utf8Base64Decode = function (base64Str) {
@@ -396,51 +363,11 @@
       if (!/[^\x00-\x7F]/.test(tmpStr)) {
         return tmpStr;
       }
-      var str = [], i = 0, length = tmpStr.length, followingChars = 0, b, c;
-      while (i < length) {
-        b = tmpStr.charCodeAt(i++);
-        if (b <= 0x7F) {
-          str.push(String.fromCharCode(b));
-          continue;
-        } else if (b > 0xBF && b <= 0xDF) {
-          c = b & 0x1F;
-          followingChars = 1;
-        } else if (b <= 0xEF) {
-          c = b & 0x0F;
-          followingChars = 2;
-        } else if (b <= 0xF7) {
-          c = b & 0x07;
-          followingChars = 3;
-        } else {
-          throw new Error(ENCODING_ERROR);
-        }
+      return bytesToUtf8(binaryStringToBytes(tmpStr, Array));
+    };
 
-        for (var j = 0; j < followingChars; ++j) {
-          b = tmpStr.charCodeAt(i++);
-          if (b < 0x80 || b > 0xBF) {
-            throw new Error(ENCODING_ERROR);
-          }
-          c <<= 6;
-          c += b & 0x3F;
-        }
-        if (c >= 0xD800 && c <= 0xDFFF) {
-          throw new Error(ENCODING_ERROR);
-        }
-        if (c > 0x10FFFF) {
-          throw new Error(ENCODING_ERROR);
-        }
-
-        if (c <= 0xFFFF) {
-          str.push(String.fromCharCode(c));
-        } else {
-          c -= 0x10000;
-          str.push(
-            String.fromCharCode((c >> 10) + 0xD800),
-            String.fromCharCode((c & 0x3FF) + 0xDC00)
-          );
-        }
-      }
-      return str.join('');
+    encodeFromBytes = function (bytes, format) {
+      return convertFormat(btoa(bytesToString(bytes)), format);
     };
   }
 
@@ -471,6 +398,7 @@
   exports.atob = atob;
   exports.btoa = btoa;
   decode.bytes = decodeAsBytes;
+  decode.uint8Array = decodeAsUint8Array;
   decode.string = decode;
 
   if (COMMON_JS) {
