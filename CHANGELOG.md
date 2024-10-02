@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.4.1 / 2024-10-02
+### Added
+- build file
+
 ## v0.4.0 / 2024-10-02
 ### Added
 - RFC 4648 URL Safe support
