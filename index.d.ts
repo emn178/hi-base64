@@ -25,5 +25,5 @@ interface Decode {
   bytes(base64Str: string): number[];
 }
 
-export function encode(str: StringOrBytes, asciiOnly = false): string;
+export function encode(str: StringOrBytes, asciiOnly = false, format: string): string;
 export var decode: Decode;;
