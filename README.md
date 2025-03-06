@@ -33,19 +33,19 @@ base64.decode.bytes('Base64 string to decode as bytes');
 ### CommonJS
 If you use node.js CommonJS, you should require the module first:
 ```JavaScript
-const { encode, decode } = require('hi-bas64');
+const { encode, decode } = require('hi-base64');
 ```
 
 ### ESM
 If you use node.js ESM, you can import like this:
 ```TypeScript
-import { encode, decode } from 'hi-bas64';
+import { encode, decode } from 'hi-base64';
 ```
 
 ### TypeScript
 If you use TypeScript, you can import like this:
 ```TypeScript
-import { encode, decode } from 'hi-bas64';
+import { encode, decode } from 'hi-base64';
 ```
 
 ### RequireJS
