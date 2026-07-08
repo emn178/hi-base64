@@ -1,6 +1,9 @@
 expect = require('expect.js');
 Worker = require("tiny-worker");
 
+var NATIVE_ATOB = global.atob;
+var NATIVE_BTOA = global.btoa;
+
 function unset() {
   delete require.cache[require.resolve('../src/base64.js')];
   delete require.cache[require.resolve('./test.js')];
@@ -10,6 +13,8 @@ function unset() {
   HI_BASE64_NO_NODE_JS = undefined;
   HI_BASE64_NO_COMMON_JS = undefined;
   window = undefined;
+  global.atob = NATIVE_ATOB;
+  global.btoa = NATIVE_BTOA;
 }
 
 function runCommonJsTest() {
@@ -35,6 +40,13 @@ runCommonJsTest();
 // browser env
 HI_BASE64_NO_NODE_JS = true;
 HI_BASE64_NO_COMMON_JS = true;
+runWindowTest();
+
+// browser env without native atob/btoa
+HI_BASE64_NO_NODE_JS = true;
+HI_BASE64_NO_COMMON_JS = true;
+global.atob = undefined;
+global.btoa = undefined;
 runWindowTest();
 
 // browser env with atob

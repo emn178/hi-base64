@@ -270,6 +270,150 @@
     });
   });
 
+  describe('#create', function () {
+    var numericFirstAlphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
+    var numericFirstUrlSafeAlphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_';
+
+    it('should create a custom codec', function () {
+      var customBase64 = base64.create({
+        alphabet: numericFirstAlphabet,
+        padding: true
+      });
+      expect(customBase64.encode('abc')).to.be('OM9Z');
+      expect(customBase64.decode('OM9Z')).to.be('abc');
+      expect(customBase64.encode([251])).to.be('+m==');
+      expect(customBase64.encode([251, 255])).to.be('+/y=');
+      expect(customBase64.encode([1, 2, 3])).to.be('0G83');
+      expect(customBase64.encode('中文')).to.be('vBYjvfQ7');
+      expect(customBase64.decode('vBYjvfQ7')).to.be('中文');
+      expect(arrayToStr(customBase64.decode.bytes('+m=='))).to.be('251');
+      expect(arrayToStr(customBase64.decode.bytes('+/y='))).to.be('251,255');
+      expect(arrayToStr(customBase64.decode.uint8Array('+/y='))).to.be('251,255');
+      expect(function () {
+        customBase64.decode.bytes('A');
+      }).to.throwError();
+    });
+
+    it('should create a custom URL-safe codec', function () {
+      var customBase64 = base64.create({
+        alphabet: numericFirstUrlSafeAlphabet,
+        padding: true
+      });
+      expect(customBase64.encode([251, 255])).to.be('-_y=');
+      expect(customBase64.decode('-_y=', true)).to.be('\xfb\xff');
+      expect(arrayToStr(customBase64.decode.bytes('-_y='))).to.be('251,255');
+      expect(arrayToStr(customBase64.decode.uint8Array('-_y='))).to.be('251,255');
+      expect(function () {
+        customBase64.decode.bytes('+/y=');
+      }).to.throwError();
+    });
+
+    it('should create a no-padding codec', function () {
+      var customBase64 = base64.create({
+        alphabet: numericFirstAlphabet,
+        padding: false
+      });
+      expect(customBase64.encode('abc')).to.be('OM9Z');
+      expect(customBase64.encode('a')).to.be('OG');
+      expect(customBase64.encode('ab')).to.be('OM8');
+      expect(customBase64.encode([251])).to.be('+m');
+      expect(customBase64.encode([251, 255])).to.be('+/y');
+      expect(arrayToStr(customBase64.decode.bytes('+m'))).to.be('251');
+      expect(arrayToStr(customBase64.decode.bytes('+/y'))).to.be('251,255');
+      expect(function () {
+        customBase64.decode.bytes('+/y=');
+      }).to.throwError();
+    });
+
+    it('should create a custom codec with line breaks', function () {
+      var customBase64 = base64.create({
+        alphabet: numericFirstAlphabet,
+        padding: true,
+        lineLength: 4,
+        lineSeparator: '|'
+      });
+      expect(customBase64.encode([1, 2, 3, 4, 5, 6])).to.be('0G83|10K6');
+      expect(customBase64.encode('a')).to.be('OG==');
+      expect(customBase64.encode('ab')).to.be('OM8=');
+    });
+
+    it('should reject invalid alphabets', function () {
+      expect(function () {
+        base64.create();
+      }).to.throwError();
+      expect(function () {
+        base64.create('rfc_4648');
+      }).to.throwError();
+      expect(function () {
+        base64.create({ alphabet: 'abc' });
+      }).to.throwError();
+      expect(function () {
+        base64.create({ alphabet: numericFirstAlphabet.replace('/', '+') });
+      }).to.throwError();
+      expect(function () {
+        base64.create({ alphabet: numericFirstAlphabet.replace('/', '=') });
+      }).to.throwError();
+    });
+  });
+
+  describe('#built-in codecs', function () {
+    it('should encode like legacy formats', function () {
+      expect(base64.rfc_4648.encode('\x03\xe0\x7f\x08', true)).to.be('A+B/CA==');
+      expect(base64.rfc_4648_url_safe.encode('\x03\xe0\x7f\x08', true)).to.be(formatStrs['\x03\xe0\x7f\x08'].rfc_4648_url_safe);
+      expect(base64.rfc_2045.encode(strs[1])).to.be(formatStrs[strs[1]].rfc_2045);
+      expect(base64.rfc_2152.encode('\x03\xe0\x7f\x08', true)).to.be(formatStrs['\x03\xe0\x7f\x08'].rfc_2152);
+      expect(base64.rfc_3501.encode('\x03\xe0\x7f\x08', true)).to.be(formatStrs['\x03\xe0\x7f\x08'].rfc_3501);
+    });
+
+    it('should decode with the codec alphabet', function () {
+      expect(base64.rfc_4648.decode('+/8=', true)).to.be('\xfb\xff');
+      expect(base64.rfc_4648_url_safe.decode('-_8=', true)).to.be('\xfb\xff');
+      expect(base64.rfc_3501.decode('+,8', true)).to.be('\xfb\xff');
+      expect(base64.rfc_4648_url_safe.decode(formatUtf8Strs['Base64是一種基於64個可列印字元來表示二進制資料的表示方法'].rfc_4648_url_safe)).to.be('Base64是一種基於64個可列印字元來表示二進制資料的表示方法');
+      expect(arrayToStr(base64.rfc_4648.decode.bytes('+/8='))).to.be('251,255');
+      expect(arrayToStr(base64.rfc_4648_url_safe.decode.bytes('-_8='))).to.be('251,255');
+      expect(arrayToStr(base64.rfc_3501.decode.bytes('+,8'))).to.be('251,255');
+      expect(arrayToStr(base64.rfc_4648.decode.uint8Array('+/8='))).to.be('251,255');
+      expect(arrayToStr(base64.rfc_4648_url_safe.decode.uint8Array('-_8='))).to.be('251,255');
+      expect(arrayToStr(base64.rfc_3501.decode.uint8Array('+,8'))).to.be('251,255');
+    });
+
+    it('should reject other alphabets', function () {
+      expect(function () {
+        base64.rfc_4648.decode('A');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648.decode('-_8=', true);
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648.decode.bytes('-_8=');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648.decode.uint8Array('-_8=');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648_url_safe.decode('+/8=', true);
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648_url_safe.decode.bytes('+/8=');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_4648_url_safe.decode.uint8Array('+/8=');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_3501.decode('+/8', true);
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_3501.decode.bytes('+/8');
+      }).to.throwError();
+      expect(function () {
+        base64.rfc_3501.decode.uint8Array('+/8');
+      }).to.throwError();
+      expect(arrayToStr(base64.decode.bytes('-_8='))).to.be('251,255');
+      expect(arrayToStr(base64.decode.uint8Array('+,8'))).to.be('251,255');
+    });
+  });
+
   describe('#decode.string', function () {
     for (var i = 0; i < strs.length; ++i) {
       (function (i) {

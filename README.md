@@ -28,6 +28,7 @@ You could use like this:
 base64.encode('String to encode');
 base64.decode('Base64 string to decode');
 base64.decode.bytes('Base64 string to decode as bytes');
+base64.rfc_4648_url_safe.encode('String to encode');
 ```
 
 ### CommonJS
@@ -57,7 +58,7 @@ require(['your/path/base64.js'], function (base64) {
 ```
 
 ### Methods
-#### base64.encode(str, asciiOnly, format)
+#### base64.encode(str, asciiOnly)
 Encode string to base64, set asciiOnly to true for better performace.
 
 ##### *str: `String`*
@@ -66,15 +67,44 @@ String to encode.
 ##### *asciiOnly: `Boolean` (default: `false`)*
 Specify the string encoding is ASCII.
 
-##### *format: `String` (default: `rfc_4648`)*
-Specify the output format. can be following:
+#### base64.create(options)
+Create a Base64 codec with custom options.
+
+##### *options.alphabet: `String`*
+Specify the 64-character alphabet. The alphabet must contain exactly 64 unique characters and cannot contain `=`, CR, or LF.
+
+##### *options.padding: `Boolean` (default: `true`)*
+Specify whether encoded output should include `=` padding.
+
+##### *options.lineLength: `Number` (default: `0`)*
+Specify the encoded line length. Set `0` to disable line wrapping.
+
+##### *options.lineSeparator: `String` (default: `\r\n`)*
+Specify the line separator when `lineLength` is enabled.
+
+#### Built-in codecs
+The built-in codecs are:
 * rfc_4648
 * rfc_4648_url_safe
 * rfc_2045
 * rfc_2152
 * rfc_3501
 
+You can use them directly:
+```JavaScript
+base64.rfc_4648.encode('String to encode');
+base64.rfc_4648.decode('Base64 string to decode');
+base64.rfc_4648_url_safe.encode('String to encode');
+base64.rfc_4648_url_safe.decode('Base64 string to decode');
+```
+
 Please refer to [wiki](https://en.wikipedia.org/wiki/Base64#Variants_summary_table).
+
+#### base64.encode(str, asciiOnly, format)
+Encode string to base64 with a legacy format parameter. Prefer the built-in codecs for new code:
+```JavaScript
+base64.rfc_4648_url_safe.encode(str);
+```
 
 #### base64.decode(base64Str, asciiOnly)
 Decode base64 string, set asciiOnly to true for better performace. `base64.decode.string` is alias to this method.

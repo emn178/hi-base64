@@ -1,9 +1,9 @@
 /*
  * [hi-base64]{@link https://github.com/emn178/hi-base64}
  *
- * @version 0.4.1
+ * @version 0.5.0
  * @author Chen, Yi-Cyuan [emn178@gmail.com]
- * @copyright Chen, Yi-Cyuan 2014-2023
+ * @copyright Chen, Yi-Cyuan 2014-2026
  * @license MIT
  */
 /*jslint bitwise: true */
@@ -26,27 +26,36 @@
   var COMMON_JS = !root.HI_BASE64_NO_COMMON_JS && typeof module === 'object' && module.exports;
   var AMD = typeof define === 'function' && define.amd;
   var BASE64_ENCODE_CHAR_BASIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var BASE64_ENCODE_CHAR_STANDARD = (BASE64_ENCODE_CHAR_BASIC + '+/').split('');
-  var BASE64_ENCODE_CHAR_URL_SAFE = (BASE64_ENCODE_CHAR_BASIC + '-_').split('');
-  var BASE64_ENCODE_CHAR_IMAP = (BASE64_ENCODE_CHAR_BASIC + '+,').split('');
-  var BASE64_ENCODE_CHAR = {
-    rfc_4648_url_safe: BASE64_ENCODE_CHAR_URL_SAFE,
-    rfc_3501: BASE64_ENCODE_CHAR_IMAP
+  var BASE64_ALPHABET_STANDARD = BASE64_ENCODE_CHAR_BASIC + '+/';
+  var FORMAT_OPTIONS = {
+    rfc_4648: {
+      format: 'rfc_4648',
+      alphabet: BASE64_ALPHABET_STANDARD,
+      padding: true
+    },
+    rfc_4648_url_safe: {
+      format: 'rfc_4648_url_safe',
+      alphabet: BASE64_ENCODE_CHAR_BASIC + '-_',
+      padding: true
+    },
+    rfc_2045: {
+      format: 'rfc_2045',
+      alphabet: BASE64_ALPHABET_STANDARD,
+      padding: true,
+      lineLength: 76,
+      lineSeparator: '\r\n'
+    },
+    rfc_2152: {
+      format: 'rfc_2152',
+      alphabet: BASE64_ALPHABET_STANDARD,
+      padding: false
+    },
+    rfc_3501: {
+      format: 'rfc_3501',
+      alphabet: BASE64_ENCODE_CHAR_BASIC + '+,',
+      padding: false
+    }
   };
-  var PADDING = {
-    rfc_4648: true,
-    rfc_4648_url_safe: true,
-    rfc_2045: true
-  };
-
-  var BASE64_DECODE_CHAR = {};
-  for (var i  = 0; i < 64; ++i) {
-    BASE64_DECODE_CHAR[BASE64_ENCODE_CHAR_STANDARD[i]] = i;
-  }
-  BASE64_DECODE_CHAR['-'] = 62;
-  BASE64_DECODE_CHAR['_'] = 63;
-  BASE64_DECODE_CHAR[','] = 63;
-
   var BATCH_SIZE = 10000;
 
   var cleanBase64Str = function (base64Str) {
@@ -66,30 +75,177 @@
     return chunks;
   };
 
-  var getFormatInfo = function (format) {
-    if (format === undefined) {
-      format = 'rfc_4648';
+  var validateAlphabet = function (alphabet) {
+    if (typeof alphabet !== 'string' || alphabet.length !== 64) {
+      throw new Error('Invalid base64 alphabet');
     }
-    return [BASE64_ENCODE_CHAR[format] || BASE64_ENCODE_CHAR_STANDARD, PADDING[format], format === 'rfc_2045'];
+    var chars = {};
+    for (var i = 0; i < 64; ++i) {
+      var c = alphabet.charAt(i);
+      if (c === '=' || c === '\r' || c === '\n' || chars[c]) {
+        throw new Error('Invalid base64 alphabet');
+      }
+      chars[c] = true;
+    }
   };
+
+  var normalizeOptions = function (options) {
+    if (!options || typeof options !== 'object') {
+      throw new Error('Invalid base64 options');
+    }
+    var alphabet = options.alphabet;
+    validateAlphabet(alphabet);
+    var decodeChars = {};
+    for (var i = 0; i < 64; ++i) {
+      decodeChars[alphabet.charAt(i)] = i;
+    }
+    return {
+      alphabet: alphabet,
+      chars: alphabet.split(''),
+      decodeChars: decodeChars,
+      format: options.format,
+      padding: options.padding !== false,
+      lineLength: options.lineLength || 0,
+      lineSeparator: options.lineSeparator || '\r\n'
+    };
+  };
+  var STANDARD_OPTIONS = normalizeOptions(FORMAT_OPTIONS.rfc_4648);
 
   var convertFormat = function (base64Str, format) {
     switch (format) {
-      // URL Safe
       case 'rfc_4648_url_safe':
-        return base64Str.replace(/\//g, '_').replace(/\+/g, '-');
-      // MIME
+        return base64Str.replace(/\+/g, '-').replace(/\//g, '_');
       case 'rfc_2045':
         return chunkStr(base64Str, 76).join('\r\n');
-      // UTF-7
       case 'rfc_2152':
         return base64Str.replace(/=/g, '');
-      // IMAP
       case 'rfc_3501':
         return base64Str.replace(/\//g, ',').replace(/=/g, '');
       default:
         return base64Str;
     }
+  };
+
+  var normalizeBase64StrBase = function (base64Str, options) {
+    var str = base64Str.replace(/[\r\n]/g, '');
+    var paddingIndex = str.indexOf('=');
+    var base64Body = paddingIndex === -1 ? str : str.substring(0, paddingIndex);
+    var padding = paddingIndex === -1 ? '' : str.substring(paddingIndex);
+    if (padding && (!/^={1,2}$/.test(padding) || base64Body.length + padding.length !== str.length || !options.padding)) {
+      throw new Error('Invalid base64 string');
+    }
+    if (base64Body.length % 4 === 1) {
+      throw new Error('Invalid base64 string');
+    }
+    return base64Body;
+  };
+
+  var normalizeBase64StrByFormat = function (base64Str, options) {
+    var base64Body = normalizeBase64StrBase(base64Str, options);
+    switch (options.format) {
+      case 'rfc_4648_url_safe':
+        if (/[^A-Za-z0-9\-_]/.test(base64Body)) {
+          throw new Error('Invalid base64 string');
+        }
+        return base64Body.replace(/-/g, '+').replace(/_/g, '/');
+      case 'rfc_3501':
+        if (/[^A-Za-z0-9+,]/.test(base64Body)) {
+          throw new Error('Invalid base64 string');
+        }
+        return base64Body.replace(/,/g, '/');
+      default:
+        if (/[^A-Za-z0-9+/]/.test(base64Body)) {
+          throw new Error('Invalid base64 string');
+        }
+        return base64Body;
+    }
+  };
+
+  var normalizeBase64Str = function (base64Str, options) {
+    var base64Body = normalizeBase64StrBase(base64Str, options);
+    for (var j = 0; j < base64Body.length; ++j) {
+      var c = base64Body.charAt(j);
+      if (!options.decodeChars.hasOwnProperty(c)) {
+        throw new Error('Invalid base64 string');
+      }
+    }
+    return base64Body;
+  };
+
+  var encodeFromBytesWithOptions = function (bytes, options) {
+    var v1, v2, v3, i = 0, j = 0, length = bytes.length, remainder = length % 3, chars = options.chars;
+    var base64Str = new Array(Math.ceil(length / 3) << 2);
+    length -= remainder;
+    while (i < length) {
+      v1 = bytes[i++];
+      v2 = bytes[i++];
+      v3 = bytes[i++];
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+      base64Str[j++] = chars[(v2 << 2 | v3 >>> 6) & 63];
+      base64Str[j++] = chars[v3 & 63];
+    }
+
+    if (remainder === 1) {
+      v1 = bytes[i];
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4) & 63];
+      if (options.padding) {
+        base64Str[j++] = '==';
+      }
+    } else if (remainder === 2) {
+      v1 = bytes[i++];
+      v2 = bytes[i];
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+      base64Str[j++] = chars[(v2 << 2) & 63];
+      if (options.padding) {
+        base64Str[j++] = '=';
+      }
+    }
+    base64Str = base64Str.join('');
+    if (options.lineLength) {
+      base64Str = chunkStr(base64Str, options.lineLength).join(options.lineSeparator);
+    }
+    return base64Str;
+  };
+
+  var encodeFromBinaryStringWithOptions = function (str, options) {
+    var v1, v2, v3, i = 0, j = 0, length = str.length, remainder = length % 3, chars = options.chars;
+    var base64Str = new Array(Math.ceil(length / 3) << 2);
+    length -= remainder;
+    while (i < length) {
+      v1 = str.charCodeAt(i++);
+      v2 = str.charCodeAt(i++);
+      v3 = str.charCodeAt(i++);
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+      base64Str[j++] = chars[(v2 << 2 | v3 >>> 6) & 63];
+      base64Str[j++] = chars[v3 & 63];
+    }
+
+    if (remainder === 1) {
+      v1 = str.charCodeAt(i);
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4) & 63];
+      if (options.padding) {
+        base64Str[j++] = '==';
+      }
+    } else if (remainder === 2) {
+      v1 = str.charCodeAt(i++);
+      v2 = str.charCodeAt(i);
+      base64Str[j++] = chars[v1 >>> 2];
+      base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
+      base64Str[j++] = chars[(v2 << 2) & 63];
+      if (options.padding) {
+        base64Str[j++] = '=';
+      }
+    }
+    base64Str = base64Str.join('');
+    if (options.lineLength) {
+      base64Str = chunkStr(base64Str, options.lineLength).join(options.lineSeparator);
+    }
+    return base64Str;
   };
 
   var utf8ToBytes = function (str) {
@@ -179,6 +335,34 @@
     return bytes;
   };
 
+  var decodeBase64AsBytes = function (base64Str, BytesClass, options) {
+    var v1, v2, v3, v4, i = 0, j = 0, length = base64Str.length, remainder = length % 4, decodeChars = options.decodeChars;
+    var bytes = new BytesClass((length >>> 2) * 3 + (remainder && (remainder - 1)));
+    length -= remainder;
+    while (i < length) {
+      v1 = decodeChars[base64Str.charAt(i++)];
+      v2 = decodeChars[base64Str.charAt(i++)];
+      v3 = decodeChars[base64Str.charAt(i++)];
+      v4 = decodeChars[base64Str.charAt(i++)];
+      bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+      bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      bytes[j++] = (v3 << 6 | v4) & 255;
+    }
+
+    if (remainder === 2) {
+      v1 = decodeChars[base64Str.charAt(i++)];
+      v2 = decodeChars[base64Str.charAt(i++)];
+      bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+    } else if (remainder === 3) {
+      v1 = decodeChars[base64Str.charAt(i++)];
+      v2 = decodeChars[base64Str.charAt(i++)];
+      v3 = decodeChars[base64Str.charAt(i++)];
+      bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
+      bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+    }
+    return bytes;
+  };
+
   var decodeAsBytesBase = function (base64Str, BytesClass) {
     return binaryStringToBytes(atob(cleanBase64Str2(cleanBase64Str(base64Str))), BytesClass);
   };
@@ -191,18 +375,12 @@
     return decodeAsBytesBase(base64Str, Uint8Array);
   };
 
-  var btoa = root.btoa, atob = root.atob, utf8Base64Encode, utf8Base64Decode, encodeFromBytes;
+  var btoa = root.btoa, atob = root.atob, utf8Base64Decode;
   if (NODE_JS) {
     var Buffer = require('buffer').Buffer;
     btoa = function (str) {
       return Buffer.from(str, 'binary').toString('base64');
     };
-
-    utf8Base64Encode = function (str, format) {
-      return convertFormat(Buffer.from(str).toString('base64'), format);
-    };
-
-    encodeFromBytes = utf8Base64Encode;
 
     atob = function (base64Str) {
       return Buffer.from(base64Str, 'base64').toString('binary');
@@ -213,151 +391,21 @@
     };
   } else if (!btoa) {
     btoa = function (str) {
-      var v1, v2, v3, i = 0, j = 0, length = str.length, remainder = length % 3;
-      var base64Str = new Array(Math.ceil(length / 3) << 2);
-      length -= remainder;
-      while (i < length) {
-        v1 = str.charCodeAt(i++);
-        v2 = str.charCodeAt(i++);
-        v3 = str.charCodeAt(i++);
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v2 << 2 | v3 >>> 6) & 63];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v3 & 63];
-      }
-
-      // remain char
-      if (remainder === 1) {
-        v1 = str.charCodeAt(i);
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4) & 63];
-        base64Str[j++] = '==';
-      } else if (remainder === 2) {
-        v1 = str.charCodeAt(i++);
-        v2 = str.charCodeAt(i);
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[v1 >>> 2];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v1 << 4 | v2 >>> 4) & 63];
-        base64Str[j++] = BASE64_ENCODE_CHAR_STANDARD[(v2 << 2) & 63];
-        base64Str[j++] = '=';
-      }
-      return base64Str.join('');
-    };
-
-    utf8Base64Encode = function (str, format) {
-      return encodeFromBytes(utf8ToBytes(str), format);
-    };
-
-    encodeFromBytes = function (bytes, format) {
-      var info = getFormatInfo(format);
-      var v1, v2, v3, i = 0, j = 0, length = bytes.length, remainder = length % 3, chars = info[0], padding = info[1], chunk = info[2];
-      var base64Str = new Array(Math.ceil(length / 3) << 2);
-      length -= remainder;
-      while (i < length) {
-        v1 = bytes[i++];
-        v2 = bytes[i++];
-        v3 = bytes[i++];
-        base64Str[j++] = chars[v1 >>> 2];
-        base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
-        base64Str[j++] = chars[(v2 << 2 | v3 >>> 6) & 63];
-        base64Str[j++] = chars[v3 & 63];
-      }
-
-      // remain char
-      if (remainder === 1) {
-        v1 = bytes[i];
-        base64Str[j++] = chars[v1 >>> 2];
-        base64Str[j++] = chars[(v1 << 4) & 63];
-        if (padding) {
-          base64Str[j++] = '=='
-        }
-      } else if (remainder === 2) {
-        v1 = bytes[i++];
-        v2 = bytes[i];
-        base64Str[j++] = chars[v1 >>> 2];
-        base64Str[j++] = chars[(v1 << 4 | v2 >>> 4) & 63];
-        base64Str[j++] = chars[(v2 << 2) & 63];
-        if (padding) {
-          base64Str[j++] = '='
-        }
-      }
-      base64Str = base64Str.join('');
-      if (chunk) {
-        base64Str = chunkStr(base64Str, 76).join('\r\n');
-      }
-      return base64Str;
+      return encodeFromBinaryStringWithOptions(str, STANDARD_OPTIONS);
     };
 
     atob = function (base64Str) {
-      var v1, v2, v3, v4, i = 0, j = 0, length = base64Str.length, j = 0, remainder = length % 4;
-      var bytes = new Array((length >>> 2) * 3 + (remainder && (remainder - 1)));
-      length -= remainder;
-      // 4 char to 3 bytes
-      while (i < length) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
-        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-        bytes[j++] = (v3 << 6 | v4) & 255;
-      }
-
-      // remain bytes
-      if (remainder === 2) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
-      } else if (remainder === 3) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255
-        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      }
-      return bytesToString(bytes);
+      return bytesToString(decodeBase64AsBytes(base64Str, Array, STANDARD_OPTIONS));
     };
 
     utf8Base64Decode = function (base64Str) {
-      return bytesToUtf8(decodeAsBytesBase(base64Str, Array, true));
+      return bytesToUtf8(decodeBase64AsBytes(cleanBase64Str2(base64Str), Array, STANDARD_OPTIONS));
     };
 
-    decodeAsBytesBase = function (base64Str, BytesClass, cleaned) {
-      if (!cleaned) {
-        base64Str = cleanBase64Str(base64Str);
-      }
-      var v1, v2, v3, v4, i = 0, j = 0, length = base64Str.length, remainder = length % 4;
-      var bytes = new BytesClass((length >>> 2) * 3 + (remainder && (remainder - 1)));
-      length -= remainder;
-      // 4 char to 3 bytes
-      while (i < length) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v4 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
-        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-        bytes[j++] = (v3 << 6 | v4) & 255;
-      }
-
-      // remain bytes
-      if (remainder === 2) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
-      } else if (remainder === 3) {
-        v1 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v2 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        v3 = BASE64_DECODE_CHAR[base64Str.charAt(i++)];
-        bytes[j++] = (v1 << 2 | v2 >>> 4) & 255;
-        bytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      }
-      return bytes;
+    decodeAsBytesBase = function (base64Str, BytesClass) {
+      return decodeBase64AsBytes(cleanBase64Str2(cleanBase64Str(base64Str)), BytesClass, STANDARD_OPTIONS);
     };
   } else {
-    utf8Base64Encode = function (str, format) {
-      return convertFormat(btoa(bytesToString(utf8ToBytes(str))), format);
-    };
-
     utf8Base64Decode = function (base64Str) {
       var tmpStr = atob(cleanBase64Str2(base64Str));
       if (!/[^\x00-\x7F]/.test(tmpStr)) {
@@ -365,26 +413,85 @@
       }
       return bytesToUtf8(binaryStringToBytes(tmpStr, Array));
     };
-
-    encodeFromBytes = function (bytes, format) {
-      return convertFormat(btoa(bytesToString(bytes)), format);
-    };
   }
 
-  var encode = function (str, asciiOnly, format) {
-    var notString = typeof(str) != 'string';
-    if (notString && str.constructor === root.ArrayBuffer) {
-      str = new Uint8Array(str);
-    }
-    if (notString) {
-      return encodeFromBytes(str, format);
+  var create = function (options) {
+    options = normalizeOptions(options);
+    var encodeBytes, encodeAscii, encodeUtf8, normalize, decodeBase, decodeBytes;
+    if (options.format) {
+      encodeBytes = function (bytes, options) {
+        return convertFormat(btoa(bytesToString(bytes)), options.format);
+      };
+      encodeAscii = function (str, options) {
+        return convertFormat(btoa(str), options.format);
+      };
+      encodeUtf8 = function (str, options) {
+        return convertFormat(btoa(bytesToString(utf8ToBytes(str))), options.format);
+      };
+      normalize = normalizeBase64StrByFormat;
+      decodeBase = function (base64Str, asciiOnly) {
+        return asciiOnly ? atob(base64Str) : utf8Base64Decode(base64Str);
+      };
+      decodeBytes = function (base64Str, BytesClass) {
+        return binaryStringToBytes(atob(base64Str), BytesClass);
+      };
     } else {
-      if (!asciiOnly && /[^\x00-\x7F]/.test(str)) {
-        return utf8Base64Encode(str, format);
-      } else {
-        return convertFormat(btoa(str), format);
-      }
+      encodeBytes = encodeFromBytesWithOptions;
+      encodeAscii = encodeFromBinaryStringWithOptions;
+      encodeUtf8 = function (str) {
+        return encodeFromBytesWithOptions(utf8ToBytes(str), options);
+      };
+      normalize = normalizeBase64Str;
+      decodeBase = function (base64Str, asciiOnly) {
+        var bytes = decodeBase64AsBytes(base64Str, Array, options);
+        return asciiOnly ? bytesToString(bytes) : bytesToUtf8(bytes);
+      };
+      decodeBytes = function (base64Str, BytesClass) {
+        return decodeBase64AsBytes(base64Str, BytesClass, options);
+      };
     }
+    var codecEncode = function (str, asciiOnly) {
+      var notString = typeof(str) != 'string';
+      if (notString && str.constructor === root.ArrayBuffer) {
+        str = new Uint8Array(str);
+      }
+      if (notString) {
+        return encodeBytes(str, options);
+      }
+      if (!asciiOnly && /[^\x00-\x7F]/.test(str)) {
+        return encodeUtf8(str, options);
+      }
+      return encodeAscii(str, options);
+    };
+    var codecDecode = function (base64Str, asciiOnly) {
+      base64Str = normalize(base64Str, options);
+      return decodeBase(base64Str, asciiOnly);
+    };
+    codecDecode.bytes = function (base64Str) {
+      base64Str = normalize(base64Str, options);
+      return decodeBytes(base64Str, Array);
+    };
+    codecDecode.uint8Array = function (base64Str) {
+      base64Str = normalize(base64Str, options);
+      return decodeBytes(base64Str, Uint8Array);
+    };
+    codecDecode.string = codecDecode;
+    return {
+      encode: codecEncode,
+      decode: codecDecode
+    };
+  };
+
+  var CODECS = {
+    rfc_4648: create(FORMAT_OPTIONS.rfc_4648),
+    rfc_4648_url_safe: create(FORMAT_OPTIONS.rfc_4648_url_safe),
+    rfc_2045: create(FORMAT_OPTIONS.rfc_2045),
+    rfc_2152: create(FORMAT_OPTIONS.rfc_2152),
+    rfc_3501: create(FORMAT_OPTIONS.rfc_3501)
+  };
+
+  var encode = function (str, asciiOnly, format) {
+    return (CODECS[format] || CODECS.rfc_4648).encode(str, asciiOnly);
   };
 
   var decode = function (base64Str, asciiOnly) {
@@ -395,11 +502,17 @@
   var exports = {};
   exports.encode = encode;
   exports.decode = decode;
+  exports.create = create;
   exports.atob = atob;
   exports.btoa = btoa;
   decode.bytes = decodeAsBytes;
   decode.uint8Array = decodeAsUint8Array;
   decode.string = decode;
+  exports.rfc_4648 = CODECS.rfc_4648;
+  exports.rfc_4648_url_safe = CODECS.rfc_4648_url_safe;
+  exports.rfc_2045 = CODECS.rfc_2045;
+  exports.rfc_2152 = CODECS.rfc_2152;
+  exports.rfc_3501 = CODECS.rfc_3501;
 
   if (COMMON_JS) {
     module.exports = exports;

@@ -1,5 +1,10 @@
 # Change Log
 
+## v0.5.0 / 2026-07-08
+### Added
+- `base64.create(options)` for custom Base64 codecs.
+- Built-in codec objects: `rfc_4648`, `rfc_4648_url_safe`, `rfc_2045`, `rfc_2152`, and `rfc_3501`.
+
 ## v0.4.1 / 2024-10-02
 ### Added
 - build file
