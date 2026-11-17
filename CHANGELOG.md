@@ -1,5 +1,29 @@
 # Change Log
 
+## v0.6.0 / 2026-11-17
+### Added
+- Support ESM with `build/base64.mjs` and `build/base64.min.mjs`, and package `exports`.
+- TypeScript declarations for `atob` and `btoa`.
+- GitHub Actions CI across Node.js 20, 22, and 24 against the packed npm artifact.
+- GitHub Actions publish workflow on release with npm trusted publishing and provenance.
+- `prepack` script to build distributions before `npm pack` / `npm publish`.
+
+### Fixed
+- Unpaired UTF-16 surrogates in string input were encoded incorrectly and consumed the following code unit. They are now encoded as U+FFFD, matching `TextEncoder`.
+- Truncated, overlong, and other ill-formed UTF-8 sequences could be decoded into wrong characters in browsers.
+- `atob` returned trailing NUL characters for padded input in environments without native `atob`.
+- Invalid parameter initializers in TypeScript declarations.
+- Browsers with a `process` polyfill (e.g. BrowserFS) and Electron renderers were detected as Node.js and threw `global is not defined`.
+- `ArrayBuffer` input was not recognized when the global object could not be detected.
+- Encoding non-string input threw `ReferenceError` in environments without `ArrayBuffer`.
+
+### Changed
+- Decoding invalid UTF-8 in browsers now replaces ill-formed sequences with U+FFFD, matching `TextDecoder` and the Node.js implementation, instead of throwing an error.
+- Use the global `Buffer` in Node.js instead of `require('buffer')`, and remove the `browser` field from package.json.
+- Replace Travis CI with GitHub Actions.
+- Update README badges to GitHub Actions, npm, and jsDelivr.
+- Upgrade mocha, nyc and uglify-js, and override vulnerable transitive dev dependencies (glob, minimatch).
+
 ## v0.5.0 / 2026-07-08
 ### Added
 - `base64.create(options)` for custom Base64 codecs.

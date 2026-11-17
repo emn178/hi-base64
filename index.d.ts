@@ -7,7 +7,7 @@ interface Decode {
    * @param base64Str The base64 string you want to decode.
    * @param asciiOnly Decode string as ascii encoding string if true, or utf-8 encoding.
    */
-  (base64Str: string, asciiOnly = false): string;
+  (base64Str: string, asciiOnly?: boolean): string;
 
   /**
    * Decode base64 string to text.
@@ -15,7 +15,7 @@ interface Decode {
    * @param base64Str The base64 string you want to decode.
    * @param asciiOnly Decode string as ascii encoding string if true, or utf-8 encoding.
    */
-  string(base64Str: string, asciiOnly = false): string;
+  string(base64Str: string, asciiOnly?: boolean): string;
 
   /**
    * Decode base64 string to int array.
@@ -47,6 +47,14 @@ interface CreateOptions {
 export function encode(str: StringOrBytes, asciiOnly?: boolean, format?: string): string;
 export var decode: Decode;
 export function create(options: CreateOptions): Codec;
+/**
+ * Encode binary string (each character is a byte) to base64 string.
+ */
+export function btoa(str: string): string;
+/**
+ * Decode base64 string to binary string (each character is a byte).
+ */
+export function atob(base64Str: string): string;
 export var rfc_4648: Codec;
 export var rfc_4648_url_safe: Codec;
 export var rfc_2045: Codec;

@@ -1,20 +1,41 @@
 {
   "name": "hi-base64",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.",
   "main": "src/base64.js",
+  "module": "build/base64.mjs",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./build/base64.mjs",
+      "require": "./src/base64.js",
+      "default": "./src/base64.js"
+    },
+    "./src/base64.js": "./src/base64.js",
+    "./build/base64.min.js": "./build/base64.min.js",
+    "./build/base64.mjs": "./build/base64.mjs",
+    "./build/base64.min.mjs": "./build/base64.min.mjs",
+    "./package.json": "./package.json"
+  },
+  "types": "./index.d.ts",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.9",
+    "@rollup/plugin-terser": "^1.0.2",
     "expect.js": "~0.3.1",
-    "mocha": "~10.2.0",
-    "nyc": "^15.1.0",
+    "mocha": "^12.0.3",
+    "nyc": "^18.0.0",
+    "rollup": "^4.65.0",
     "tiny-worker": "^2.3.0",
-    "uglify-js": "^3.1.9"
+    "uglify-js": "^3.19.3"
   },
   "scripts": {
-    "test": "nyc mocha tests/node-test.js",
-    "report": "nyc --reporter=html --reporter=text mocha tests/node-test.js",
+    "test": "npm run build && npm run test:coverage",
+    "test:runtime": "mocha tests/node-test.js && mocha tests/esm-test.mjs",
+    "test:coverage": "nyc --reporter=text --reporter=html --reporter=lcov npm run test:runtime",
+    "report": "nyc --reporter=html --reporter=text npm run test:runtime",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
-    "build": "uglifyjs src/base64.js --compress --mangle --comments --output build/base64.min.js"
+    "build": "rollup -c && uglifyjs src/base64.js -c -m --comments -o build/base64.min.js",
+    "prepack": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -31,7 +52,13 @@
   "bugs": {
     "url": "https://github.com/emn178/hi-base64/issues"
   },
-  "browser": {
-    "buffer": false
+  "nyc": {
+    "exclude": [
+      "tests"
+    ]
+  },
+  "overrides": {
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
   }
 }

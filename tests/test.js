@@ -34,6 +34,71 @@
     '9JCAgA=='
   ];
 
+  var unpairedSurrogateStrs = [
+    '\ud800',
+    'a\ud83db',
+    '\ud83d\ud83d\ude00\udfff',
+    'ab\udc00',
+    '\ud83d'
+  ];
+
+  var base64UnpairedSurrogateStrs = [
+    '77+9',
+    'Ye+/vWI=',
+    '77+98J+YgO+/vQ==',
+    'YWLvv70=',
+    '77+9'
+  ];
+
+  var base64NonUtf8DecodedStrs = [
+    '\ufffd',
+    '\ufffdy',
+    '\ufffd\ufffd\ufffd',
+    '\ufffd\ufffd\ufffd\ufffd'
+  ];
+
+  var base64Utf8EdgeStrs = [
+    '5Lg=',
+    'YcM=',
+    '8J+Y',
+    'wIA=',
+    'wK8=',
+    '4ICA',
+    '8ICAgA==',
+    '7aCA',
+    '9JCAgA==',
+    'gA==',
+    '/w==',
+    '+IiAgIA=',
+    '5Lhh',
+    '8J+YgOS4',
+    '4KCA',
+    '7Z+/',
+    '8YCAgA==',
+    '9I+/vw=='
+  ];
+
+  var utf8EdgeDecodedStrs = [
+    '\ufffd',
+    'a\ufffd',
+    '\ufffd',
+    '\ufffd\ufffd',
+    '\ufffd\ufffd',
+    '\ufffd\ufffd\ufffd',
+    '\ufffd\ufffd\ufffd\ufffd',
+    '\ufffd\ufffd\ufffd',
+    '\ufffd\ufffd\ufffd\ufffd',
+    '\ufffd',
+    '\ufffd',
+    '\ufffd\ufffd\ufffd\ufffd\ufffd',
+    '\ufffda',
+    '\ud83d\ude00\ufffd',
+    '\u0800',
+    '\ud7ff',
+    '\ud8c0\udc00',
+    '\udbff\udfff'
+  ];
+
   var dirtyBase64Strs = [
     'VGVzdA',
     'VGVzdA=!',
@@ -111,6 +176,16 @@
         (function (i) {
           it('should be equal', function () {
             expect(base64.encode(utf8Str[i])).to.be(base64Utf8Strs[i]);
+          });
+        })(i);
+      }
+    });
+
+    context('when UTF8 with unpaired surrogates', function () {
+      for (var i = 0; i < unpairedSurrogateStrs.length; ++i) {
+        (function (i) {
+          it('should encode as U+FFFD ' + base64UnpairedSurrogateStrs[i], function () {
+            expect(base64.encode(unpairedSurrogateStrs[i])).to.be(base64UnpairedSurrogateStrs[i]);
           });
         })(i);
       }
@@ -213,19 +288,41 @@
       }
     });
 
-    if (typeof HI_BASE64_NO_NODE_JS !== 'undefined' && typeof HI_BASE64_NO_COMMON_JS !== 'undefined') {
-      context('when non-UTF8 as UTF8', function () {
-        for (var i = 0; i < base64NonUtf8Strs.length; ++i) {
-          (function (i) {
-            it('should throw exception', function () {
-              expect(function () {
-                base64.decode(base64NonUtf8Strs[i]);
-              }).to.throwError();
-            });
-          })(i);
-        }
+    context('when atob and btoa', function () {
+      var binaryStrs = {
+        '': '',
+        'h': 'aA==',
+        'hi': 'aGk=',
+        'hey': 'aGV5',
+        '\xff\x00\xfe': '/wD+'
+      };
+      Object.keys(binaryStrs).forEach(function (str) {
+        it('should round trip ' + binaryStrs[str], function () {
+          expect(base64.btoa(str)).to.be(binaryStrs[str]);
+          expect(base64.atob(binaryStrs[str])).to.be(str);
+        });
       });
-    }
+    });
+
+    context('when non-UTF8 as UTF8', function () {
+      for (var i = 0; i < base64NonUtf8Strs.length; ++i) {
+        (function (i) {
+          it('should decode with U+FFFD ' + base64NonUtf8Strs[i], function () {
+            expect(base64.decode(base64NonUtf8Strs[i])).to.be(base64NonUtf8DecodedStrs[i]);
+          });
+        })(i);
+      }
+    });
+
+    context('when UTF8 edge cases', function () {
+      for (var i = 0; i < base64Utf8EdgeStrs.length; ++i) {
+        (function (i) {
+          it('should decode like TextDecoder ' + base64Utf8EdgeStrs[i], function () {
+            expect(base64.decode(base64Utf8EdgeStrs[i])).to.be(utf8EdgeDecodedStrs[i]);
+          });
+        })(i);
+      }
+    });
 
     context('when format', function () {
       context('when ascii', function () {

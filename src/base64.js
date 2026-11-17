@@ -1,7 +1,7 @@
 /*
  * [hi-base64]{@link https://github.com/emn178/hi-base64}
  *
- * @version 0.5.0
+ * @version 0.6.0
  * @author Chen, Yi-Cyuan [emn178@gmail.com]
  * @copyright Chen, Yi-Cyuan 2014-2026
  * @license MIT
@@ -10,14 +10,13 @@
 (function () {
   'use strict';
 
-  var ENCODING_ERROR = 'not a UTF-8 string';
   var WINDOW = typeof window === 'object';
   var root = WINDOW ? window : {};
   if (root.HI_BASE64_NO_WINDOW) {
     WINDOW = false;
   }
   var WEB_WORKER = !WINDOW && typeof self === 'object';
-  var NODE_JS = !root.HI_BASE64_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
+  var NODE_JS = !root.HI_BASE64_NO_NODE_JS && !WINDOW && typeof process === 'object' && process.versions && process.versions.node && process.type != 'renderer';
   if (NODE_JS) {
     root = global;
   } else if (WEB_WORKER) {
@@ -251,7 +250,7 @@
   var utf8ToBytes = function (str) {
     var bytes = [];
     for (var i = 0; i < str.length; i++) {
-      var c = str.charCodeAt(i);
+      var c = str.charCodeAt(i), c2;
       if (c < 0x80) {
         bytes[bytes.length] = c;
       } else if (c < 0x800) {
@@ -261,12 +260,18 @@
         bytes[bytes.length] = 0xe0 | (c >> 12);
         bytes[bytes.length] = 0x80 | ((c >> 6) & 0x3f);
         bytes[bytes.length] = 0x80 | (c & 0x3f);
-      } else {
-        c = 0x10000 + (((c & 0x3ff) << 10) | (str.charCodeAt(++i) & 0x3ff));
+      } else if (c < 0xdc00 && (c2 = str.charCodeAt(i + 1)) >= 0xdc00 && c2 < 0xe000) {
+        ++i;
+        c = 0x10000 + (((c & 0x3ff) << 10) | (c2 & 0x3ff));
         bytes[bytes.length] = 0xf0 | (c >> 18);
         bytes[bytes.length] = 0x80 | ((c >> 12) & 0x3f);
         bytes[bytes.length] = 0x80 | ((c >> 6) & 0x3f);
         bytes[bytes.length] = 0x80 | (c & 0x3f);
+      } else {
+        // unpaired surrogate: U+FFFD
+        bytes[bytes.length] = 0xef;
+        bytes[bytes.length] = 0xbf;
+        bytes[bytes.length] = 0xbd;
       }
     }
     return bytes;
@@ -274,38 +279,55 @@
 
   var bytesToUtf8 = function (bytes) {
     var utf8Bytes = [], length = bytes.length;
-    var i = 0, followingChars = 0, b, c;
+    var i = 0, b, c, needed, lower, upper;
     while (i < length) {
       b = bytes[i++];
       if (b <= 0x7F) {
         utf8Bytes.push(b);
         continue;
-      } else if (b > 0xBF && b <= 0xDF) {
+      }
+      lower = 0x80;
+      upper = 0xBF;
+      if (b >= 0xC2 && b <= 0xDF) {
         c = b & 0x1F;
-        followingChars = 1;
-      } else if (b <= 0xEF) {
+        needed = 1;
+      } else if (b >= 0xE0 && b <= 0xEF) {
+        if (b === 0xE0) {
+          lower = 0xA0;
+        } else if (b === 0xED) {
+          upper = 0x9F;
+        }
         c = b & 0x0F;
-        followingChars = 2;
-      } else if (b <= 0xF7) {
+        needed = 2;
+      } else if (b >= 0xF0 && b <= 0xF4) {
+        if (b === 0xF0) {
+          lower = 0x90;
+        } else if (b === 0xF4) {
+          upper = 0x8F;
+        }
         c = b & 0x07;
-        followingChars = 3;
+        needed = 3;
       } else {
-        throw new Error(ENCODING_ERROR);
+        // invalid lead byte: U+FFFD
+        utf8Bytes.push(0xFFFD);
+        continue;
       }
 
-      for (var j = 0; j < followingChars; ++j) {
-        b = bytes[i++];
-        if (b < 0x80 || b > 0xBF) {
-          throw new Error(ENCODING_ERROR);
+      while (needed && i < length) {
+        b = bytes[i];
+        if (b < lower || b > upper) {
+          break;
         }
-        c <<= 6;
-        c += b & 0x3F;
+        lower = 0x80;
+        upper = 0xBF;
+        c = (c << 6) | (b & 0x3F);
+        ++i;
+        --needed;
       }
-      if (c >= 0xD800 && c <= 0xDFFF) {
-        throw new Error(ENCODING_ERROR);
-      }
-      if (c > 0x10FFFF) {
-        throw new Error(ENCODING_ERROR);
+      if (needed) {
+        // truncated or ill-formed sequence: U+FFFD (same as TextDecoder)
+        utf8Bytes.push(0xFFFD);
+        continue;
       }
 
       if (c <= 0xFFFF) {
@@ -377,7 +399,7 @@
 
   var btoa = root.btoa, atob = root.atob, utf8Base64Decode;
   if (NODE_JS) {
-    var Buffer = require('buffer').Buffer;
+    var Buffer = root.Buffer;
     btoa = function (str) {
       return Buffer.from(str, 'binary').toString('base64');
     };
@@ -395,7 +417,7 @@
     };
 
     atob = function (base64Str) {
-      return bytesToString(decodeBase64AsBytes(base64Str, Array, STANDARD_OPTIONS));
+      return bytesToString(decodeBase64AsBytes(cleanBase64Str(base64Str), Array, STANDARD_OPTIONS));
     };
 
     utf8Base64Decode = function (base64Str) {
@@ -452,7 +474,7 @@
     }
     var codecEncode = function (str, asciiOnly) {
       var notString = typeof(str) != 'string';
-      if (notString && str.constructor === root.ArrayBuffer) {
+      if (notString && typeof ArrayBuffer !== 'undefined' && str.constructor === ArrayBuffer) {
         str = new Uint8Array(str);
       }
       if (notString) {

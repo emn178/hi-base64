@@ -71,6 +71,66 @@ define.amd = true;
 require('../src/base64.js');
 unset();
 
+// browser with a process polyfill (e.g. BrowserFS)
+window = global;
+runCommonJsTest();
+
+// Electron renderer
+process.type = 'renderer';
+base64 = require('../src/base64.js');
+delete process.type;
+require('./test.js');
+unset();
+
+// environment detection in isolated contexts (no Node.js globals)
+describe('environment detection', function () {
+  var vm = require('vm');
+  var fs = require('fs');
+  var path = require('path');
+  var source = fs.readFileSync(path.join(__dirname, '../src/base64.js'), 'utf8');
+
+  function run(sandbox) {
+    vm.runInContext(source, vm.createContext(sandbox));
+    return sandbox.base64;
+  }
+
+  function check(base64) {
+    expect(base64.encode('Hello')).to.be('SGVsbG8=');
+    expect(base64.decode('SGVsbG8=')).to.be('Hello');
+    expect(base64.encode('中文')).to.be('5Lit5paH');
+    expect(base64.decode('5Lit5paH')).to.be('中文');
+  }
+
+  it('should not treat a browser with a process polyfill as Node.js', function () {
+    var sandbox = { process: { versions: { node: '18.0.0' }, env: {} } };
+    sandbox.window = sandbox.self = sandbox;
+    check(run(sandbox));
+  });
+
+  it('should not treat an Electron renderer as Node.js', function () {
+    var sandbox = { process: { type: 'renderer', versions: { node: '20.0.0' } } };
+    sandbox.window = sandbox.self = sandbox;
+    check(run(sandbox));
+  });
+
+  it('should encode bytes without ArrayBuffer', function () {
+    var base64 = require('../src/base64.js');
+    var NativeArrayBuffer = global.ArrayBuffer;
+    delete global.ArrayBuffer;
+    try {
+      expect(base64.encode([72, 101, 108, 108, 111])).to.be('SGVsbG8=');
+    } finally {
+      global.ArrayBuffer = NativeArrayBuffer;
+    }
+  });
+
+  it('should expose to the global scope in a web worker', function () {
+    var sandbox = {};
+    sandbox.self = sandbox;
+    check(run(sandbox));
+  });
+});
+
 // webworker
 WORKER = 'tests/worker.js';
 SOURCE = 'src/base64.js';

@@ -1,8 +1,10 @@
 # hi-base64
-[![Build Status](https://api.travis-ci.org/emn178/hi-base64.png)](https://travis-ci.org/emn178/hi-base64)
-[![Build Status](https://coveralls.io/repos/emn178/hi-base64/badge.png?branch=master)](https://coveralls.io/r/emn178/hi-base64?branch=master)  
-[![NPM](https://nodei.co/npm/hi-base64.png?stars&downloads)](https://nodei.co/npm/hi-base64/)  
-A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.  
+[![CI](https://github.com/emn178/hi-base64/actions/workflows/ci.yml/badge.svg)](https://github.com/emn178/hi-base64/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/emn178/hi-base64/badge.svg?branch=master)](https://coveralls.io/r/emn178/hi-base64?branch=master)
+[![NPM](https://img.shields.io/npm/v/hi-base64)](https://www.npmjs.com/package/hi-base64)
+[![CDNJS](https://img.shields.io/jsdelivr/npm/hm/hi-base64)](https://www.jsdelivr.com/package/npm/hi-base64)
+
+A simple Base64 encode / decode function for JavaScript supports UTF-8 encoding.
 
 ## Demo
 [Base64 Encode Online](https://emn178.github.io/online-tools/base64_encode.html)  
@@ -38,9 +40,18 @@ const { encode, decode } = require('hi-base64');
 ```
 
 ### ESM
-If you use node.js ESM, you can import like this:
-```TypeScript
+If you use node.js ESM or a bundler, you can import like this:
+```JavaScript
 import { encode, decode } from 'hi-base64';
+// or
+import base64 from 'hi-base64';
+```
+
+In browsers, you can import the ESM build directly:
+```HTML
+<script type="module">
+  import { encode, decode } from 'https://cdn.jsdelivr.net/npm/hi-base64/build/base64.min.mjs';
+</script>
 ```
 
 ### TypeScript
@@ -159,7 +170,7 @@ base64.decode.uint8Array('VGhpcyBpcyB0ZXN0Lg==');
 ```
 
 ## Notice
-In node.js, hi-base64 uses Buffer to encode / decode. It will not throw an exception when decoding a non-UTF8 base64 string as UTF-8 string. In browsers, hi-base64 will throw an exception in this case.
+When decoding a non-UTF8 base64 string as UTF-8 string, ill-formed sequences are replaced with U+FFFD (`\ufffd`), the same as `TextDecoder`. Use `base64.decode.bytes()` to get the raw bytes. Unpaired UTF-16 surrogates are encoded as U+FFFD, the same as `TextEncoder`.
 
 
 ## License
